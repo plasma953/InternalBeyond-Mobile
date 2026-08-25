@@ -579,12 +579,14 @@ body.theme-infernal .cv-stk-cell{background:rgba(24,33,58,0.5)}
 /* v1xx-p：触发回复按钮（AIVP pendingGenerate 模型——发送后不自动回复，按钮/收起键盘触发）
    v165-p：⚡ 改为 SVG 胶囊条，从输入栏移至聊天区顶部（cv-msgs 上方），脉冲动画作用于横幅 */
 .cv-trigger-wrap{flex:none;display:flex;justify-content:center;margin:6px 10px 0;pointer-events:none;z-index:5}
+.cv-trigger-wrap[hidden]{display:none!important}/* v165-p fix：同 hidden 覆盖问题——避免触发条一进 chat 就常显 */
 .cv-trigger-wrap.pulse{animation:cvtrig 1.2s ease-in-out infinite}
 .cv-trigger{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:999px;background:var(--acc,#4a7dff);color:#fff;font-size:.78rem;font-weight:600;pointer-events:auto;border:none;box-shadow:0 4px 14px rgba(74,125,255,.4);cursor:pointer}
 .cv-trigger svg{width:15px;height:15px;display:block}
 @keyframes cvtrig{0%,100%{transform:translateY(0)}50%{transform:translateY(2px)}}
 /* v165-p：表情包批量导入对话框（对齐 AIVP sticker-manager BatchAddStickerDialog） */
 .stk-batch-mask{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:flex;align-items:flex-end;justify-content:center}
+.stk-batch-mask[hidden]{display:none!important}/* v165-p fix：display:flex 会覆盖 hidden 的 UA 样式，必须显式兜底（否则弹窗一挂载就常显且关不掉） */
 .stk-batch-dlg{width:min(440px,94vw);max-height:84vh;background:#171c26;color:#e8eaf0;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 40px rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);border-bottom:none}
 body.theme-infernal .stk-batch-dlg{background:#10141f}
 .stk-batch-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;flex:none}
