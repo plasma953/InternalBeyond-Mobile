@@ -2818,6 +2818,30 @@ self.addEventListener(&#x27;fetch&#x27;,function(e){
       <div class="am-subbar"><div class="am-pager" id="am-pager"></div><button class="arch-toggle" id="am-arch-toggle-m"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><polyline points="12 7.2 12 12 15.3 13.9"/></svg>Archived</button></div><!-- v66-m t11：分页点移到搜索框与档案之间；新增归档区切换 -->
       <div id="am-all"></div>
     </div>
+    <div class="psec" id="sec-memory-viz">
+      <div class="viz-hero">
+        <div class="vh-en">Memory Vision<span class="vh-cn">记忆视界</span></div>
+      </div>
+      <div class="sec-label">语义搜索</div>
+      <div class="card">
+        <div class="viz-search-row">
+          <input class="search" id="viz-q" placeholder="语义检索记忆库…（BM25 + 向量融合）">
+          <button class="btn" id="viz-go">检索</button>
+        </div>
+        <p class="hint" style="margin-top:8px">与聊前检索同引擎同权重：词法评分 ×0.7 与向量相似度 ×0.3 融合排序，展示命中明细。</p>
+        <div id="viz-res"></div>
+      </div>
+      <div class="sec-label">记忆星图</div>
+      <div class="card">
+        <p class="hint" id="viz-map-hint">正在加载记忆…</p>
+        <canvas id="viz-starmap"></canvas>
+        <div class="viz-legend" id="viz-legend"></div>
+      </div>
+      <div class="sec-label">召回热度</div>
+      <div class="card">
+        <div id="viz-heat"></div>
+      </div>
+    </div>
   </section>
 
   <!-- ══ API ══ -->
@@ -5466,7 +5490,7 @@ const DOCKS={
   blog:[{k:'list',t:'日志',i:'book'},{k:'new',t:'写日志',i:'note',act:'blognew'},{k:'cat',t:'分类',i:'mod',act:'blogcat'},{k:'diary',t:'密码日记本',i:'lock',act:'blogdiary'}],/* v50-m：Blog 移植 */
   letters:[{k:'box',t:'信箱',i:'note'}],
   chat:[{k:'list',t:'对话',i:'list'},{k:'grp',t:'群聊',i:'list'},{k:'arch',t:'归档',i:'arch'}],/* v58-m：老按日「记录」分区移除，聊天记录管理统一在 Data·备份（照电脑端） *//* v49i-m：群聊独立分类 */
-  memory:[{k:'lib',t:'记忆库',i:'lib'},{k:'am',t:'Auto Memory',i:'am'}],/* v66-m t8：设置分类移除——注入预算/每条截取只留 API·全局设置一处（同一条 memorySettings 记录原有两套 UI，令人困惑） */
+  memory:[{k:'lib',t:'记忆库',i:'lib'},{k:'am',t:'Auto Memory',i:'am'},{k:'viz',t:'视界',i:'gd'}],/* v66-m t8：设置分类移除——注入预算/每条截取只留 API·全局设置一处（同一条 memorySettings 记录原有两套 UI，令人困惑） */
   api:[{k:'list',t:'独立配置',i:'frd'},{k:'global',t:'全局设置',i:'globe'},{k:'presence',t:'Presence',i:'heart'},{k:'tools',t:'工具',i:'tool'},{k:'data',t:'数据',i:'io',act:'gotodata'}],
   diy:[{k:'mcp',t:'MCP',i:'mcp'},{k:'tool',t:'外部工具',i:'tool'}],
  icode:[{k:'ws',t:'工作区',i:'mod'},{k:'gh',t:'GitHub',i:'api'}],/* v12 任务⑥：ICode 下栏新增 GitHub 分区 */
@@ -13750,6 +13774,8 @@ async function _ibMemSearchExecM(cfg,q){
     }
   }catch(e){}
   hits.sort((a,b)=>b.n-a.n);
+  /* v159-p：召回热度埋点——localStorage 记最近100次（查询词+Top3命中），供「记忆视界→召回热度」视图使用；失败静默不影响检索 */
+  try{var _vzHl=JSON.parse(localStorage.getItem('ibMemHeat')||'[]');if(!Array.isArray(_vzHl))_vzHl=[];var _vzHit3=hits.slice(0,3).map(function(h9){return{id:h9.id,src:h9.src,x:String(h9.x).slice(0,90),n:h9.n}});_vzHl.push({ts:Date.now(),q:String(q||'').slice(0,60),h:_vzHit3});if(_vzHl.length>100)_vzHl=_vzHl.slice(-100);localStorage.setItem('ibMemHeat',JSON.stringify(_vzHl))}catch(_vzE){}
   const top=hits.slice(0,8);
   if(!top.length)return{ok:true,label:'检索记忆库 ·「'+kws.join(' ')+'」· 无命中',response:'检索范围：对你可见的记忆库条目与你的记忆档案。没有命中的条目。'};
   const CAP=20000;let used=0,dropped=0;const lines=[];
@@ -18017,6 +18043,51 @@ body.theme-infernal .mbb.a{background:rgba(40,56,88,0.92);color:#e7effc}
 .ma-duo-cap{font-size:0.8rem}
 .ma-cvbg{filter:blur(56px) saturate(1.1)}
 #music-app.has-cover .ma-cvbg{opacity:0.45}
+
+/* ══ v159-p 记忆视界 Memory Vision ══ */
+.viz-hero{text-align:left;padding:4px 2px 16px}
+.viz-hero .vh-en{font-family:var(--serif);font-weight:600;font-size:1.6rem;color:var(--tx);letter-spacing:0.05em}
+.viz-hero .vh-cn{font-size:0.66rem;letter-spacing:0.28em;color:var(--tx3);margin-top:6px}
+.viz-hero::after{content:'';display:block;width:46px;height:2px;margin:12px 0 0;border-radius:2px;background:linear-gradient(90deg,var(--acc),transparent)}
+.viz-search-row{display:flex;gap:8px;align-items:center}
+.viz-search-row .search{flex:1;margin:0}
+.viz-res-head{display:flex;align-items:center;justify-content:space-between;margin:10px 2px 2px;flex-wrap:wrap;gap:6px}
+.viz-tag{font-size:0.62rem;color:var(--tx2);border:1px solid var(--line);padding:2px 8px;border-radius:999px;background:var(--soft)}
+.viz-res-item{position:relative;padding:11px 12px 10px 13px;border:1px solid var(--line);border-radius:14px;background:var(--soft);margin-top:8px;cursor:pointer;border-left:3px solid transparent}
+.viz-res-item:active{opacity:0.82}
+.viz-res-t{font-size:0.85rem;font-weight:600;color:var(--tx);line-height:1.5}
+.viz-res-c{font-size:0.72rem;color:var(--tx2);margin-top:4px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.viz-bar{height:3px;border-radius:3px;background:rgba(140,170,220,0.18);margin-top:8px;overflow:hidden}
+.viz-bar i{display:block;height:100%;border-radius:3px}
+.viz-res-meta{display:flex;align-items:center;gap:7px;font-size:0.62rem;color:var(--tx3);margin-top:7px;flex-wrap:wrap}
+.viz-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex:none}
+#viz-starmap{display:block;width:100%;height:340px;border-radius:14px;background:var(--soft);border:1px solid var(--line);touch-action:none;cursor:grab}
+#viz-starmap.grabbing{cursor:grabbing}
+.viz-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.viz-legend span{display:inline-flex;align-items:center;gap:5px;font-size:0.66rem;color:var(--tx3)}
+.viz-legend .vl-right{margin-left:auto}
+.viz-heat-grid{display:flex;gap:8px}
+.viz-heat-stat{flex:1;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center}
+.viz-heat-stat b{display:block;font-size:1.15rem;color:var(--tx);font-variant-numeric:tabular-nums}
+.viz-heat-stat span{font-size:0.62rem;color:var(--tx3)}
+.viz-q-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--soft);color:var(--tx2);border-radius:999px;padding:5px 10px;font-size:0.7rem;margin:3px 4px 0 0}
+.viz-q-chip b{color:var(--acc);font-size:0.72rem}
+.viz-hitem{display:flex;align-items:center;gap:8px;margin-top:8px}
+.viz-hitem .t{font-size:0.75rem;color:var(--tx2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.viz-hitem .bar{flex:2;height:5px;border-radius:4px;background:rgba(140,170,220,0.18);overflow:hidden}
+.viz-hitem .bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--acc),rgba(114,168,216,0.75))}
+.viz-hitem .n{font-size:0.68rem;color:var(--tx3);width:26px;text-align:right;font-variant-numeric:tabular-nums;flex:none}
+.viz-dbar{display:flex;height:8px;border-radius:6px;overflow:hidden;background:var(--line);margin-top:10px}
+.viz-dbar i{display:block;height:100%}
+.viz-dom-row{display:flex;align-items:center;gap:7px;margin-top:6px;font-size:0.66rem;color:var(--tx3)}
+.viz-ov{position:fixed;inset:0;background:rgba(10,18,34,0.45);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);z-index:999;display:flex;align-items:flex-end;justify-content:center;padding:20px 14px calc(20px + var(--sab,0px))}
+.viz-detail{width:100%;max-width:520px;background:var(--sheet,var(--panel));border:1px solid var(--panel-line);border-radius:18px;padding:18px;border-top:3px solid var(--dom,#7fa8d9);box-shadow:0 12px 40px rgba(10,20,40,0.35);max-height:70vh;overflow:auto}
+.viz-detail-h{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.viz-detail-h span{font-family:var(--serif);font-weight:600;font-size:1.05rem;color:var(--tx);line-height:1.5}
+.viz-x{border:none;background:var(--soft);width:28px;height:28px;border-radius:50%;color:var(--tx2);font-size:1rem;cursor:pointer;flex:none}
+.viz-detail-meta{font-size:0.66rem;color:var(--tx3);margin-top:6px;letter-spacing:0.04em}
+.viz-detail-c{font-size:0.82rem;color:var(--tx2);line-height:1.8;margin-top:10px;white-space:pre-wrap;word-break:break-word}
+.viz-detail-s{font-size:0.72rem;color:var(--tx3);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
 </style>
 <script>
 /* APP 稳定性：全局错误捕获，防止白屏 */
@@ -18781,6 +18852,370 @@ var IBN={
 };
 window.IBNative=IBN;
 })();
+</script>
+<script>
+
+/* ═══════════ v159-p 记忆视界 Memory Vision ═══════════
+ * ① 语义搜索：BM25 词法 + 向量相似度融合评分前端化（hits 分项明细）
+ * ② 记忆星图：Canvas 力导向聚类（域色分区 / 相似连边 / 拖拽 / 缩放 / 点击详情）
+ * ③ 召回热度：聊前检索埋点（localStorage ibMemHeat）统计仪表盘
+ * 注入策略：IIFE + SEC_RENDER['memory:viz'] 挂载，全部 _vz 前缀防冲突 */
+(function(){
+'use strict';
+if(typeof SEC_RENDER==='undefined'||!SEC_RENDER)return;
+var DC=(typeof DOMAIN_COLOR==='object'&&DOMAIN_COLOR)?DOMAIN_COLOR:{'情感':'#d4a0a0','日常':'#8eb8e0','创作':'#d9b875','思考':'#9a9ad4'};
+var _vzHeatKey='ibMemHeat';
+var _vzCache={mems:null,built:false,count:-1};
+function _vzDomain(m){return DC[m.domain]?m.domain:'日常'}
+function _vzAllMems(){if(_vzCache.mems)return Promise.resolve(_vzCache.mems);
+  return dbGetAll('memories').then(function(a){_vzCache.mems=a||[];return _vzCache.mems}).catch(function(){_vzCache.mems=[];return _vzCache.mems});}
+function _vzClearCache(){_vzCache.mems=null;_vzCache.count=-1}
+
+/* ═════ ① 语义搜索 ═════ */
+function _vzSearch(q){
+  return _vzAllMems().then(function(mems){
+    var vecOn=false,mix=0;
+    var kws=String(q||'').split(/[\s,，、]+/).filter(Boolean).slice(0,6);
+    if(!kws.length)return{ok:false,reason:''};
+    var terms=[],seen={};
+    kws.forEach(function(k){var kl=String(k).toLowerCase();if(!seen[kl]){seen[kl]=1;terms.push({t:kl,w:3})}
+      var runs=kl.match(/[\u4e00-\u9fff]{2,}/g)||[];
+      runs.forEach(function(run){for(var i=0;i+2<=run.length;i++){var bg=run.slice(i,i+2);if(!seen[bg]){seen[bg]=1;terms.push({t:bg,w:1})}}})});
+    var docs=mems.map(function(m){var t=[m.title,m.content,m.summary,(m.tags||[]).join(' ')].filter(Boolean).join(' ');
+      return{m:m,low:String(t).toLowerCase(),len:String(t).length}});
+    var N=docs.length||1,avg=0;docs.forEach(function(d){avg+=d.len});avg=avg/N||1;
+    terms.forEach(function(T){var df=0;docs.forEach(function(d){if(d.low.indexOf(T.t)!==-1)df++});T.idf=Math.log(1+(N-df+0.5)/(df+0.5))});
+    var occ=function(h,n){var c=0,i=0;while((i=h.indexOf(n,i))!==-1){c++;i+=n.length}return c};
+    var hits=[];
+    docs.forEach(function(d){var s=0;terms.forEach(function(T){var tf=occ(d.low,T.t);
+      if(tf)s+=T.w*T.idf*(tf*2.5)/(tf+1.5*(0.25+0.75*d.len/avg))});
+      if(s>0)hits.push({m:d.m,lex:s,n:s})});
+    hits.sort(function(a,b){return b.lex-a.lex});
+    return _xcLoad().then(function(vc){
+      if(vc&&vc.vect&&vc.vect.on&&vc.vect.base&&vc.vect.model){
+        return _xcEmbed(String(q||'').slice(0,300)).then(function(qv){
+          if(qv&&qv.length){
+            vecOn=true;mix=Number(vc.vect.mix)||0.5;
+            hits.forEach(function(h){if(h.m&&h.m.vec&&h.m.vec.length){h.vec=_xcCos(qv,h.m.vec);h.n=h.lex+h.vec*6*mix}});
+          }
+          return null;
+        }).catch(function(){return null});
+      }
+      return null;
+    }).then(function(){
+      hits.sort(function(a,b){return b.n-a.n});
+      return{ok:true,hits:hits.slice(0,30),vecOn:vecOn,mix:mix,total:hits.length};
+    }).catch(function(){return{ok:false,reason:'向量融合失败，请重试'}});
+  });
+}
+function _vzRenderRes(res){
+  var box=document.getElementById('viz-res');if(!box)return;
+  if(!res){box.innerHTML='<p class="hint">检索超时，请重试。</p>';return}
+  if(!res.ok){box.innerHTML='<p class="hint">'+(res.reason||'未命中')+'</p>';return}
+  if(!res.hits.length){box.innerHTML='<p class="hint">无命中。可尝试更短的关键词或换个说法。</p>';return}
+  var vtag=res.vecOn?'<span class="viz-tag">向量融合 ×'+(Number(res.mix*6).toFixed(2))+'</span>':'<span class="viz-tag">向量未启用（纯词法）</span>';
+  var head='<div class="viz-res-head"><span class="hint">命中 '+res.hits.length+' / '+res.total+' 条 · 词法+向量 = 最终分</span>'+vtag+'</div>';
+  var topN=res.hits[0].n||1;
+  box.innerHTML=head+res.hits.map(function(h){
+    var m=h.m,dom=_vzDomain(m),col=DC[dom];
+    var lw=Math.max(6,Math.round(h.n/topN*100));
+    var meta=['<i class="viz-dot" style="background:'+col+';"></i>'+dom];
+    if(m.importance)meta.push('重要度 '+m.importance);
+    if(h.vec!==undefined)meta.push('语义 '+h.vec.toFixed(3));
+    meta.push('词法 '+Number(h.lex).toFixed(2));
+    var t=String(m.title||'未命名'),c=String(m.content||m.summary||'');
+    return '<div class="viz-res-item" data-id="'+esc(String(m.id||''))+'">'
+      +'<div class="viz-res-t">'+esc(t)+'</div>'
+      +'<div class="viz-res-c">'+esc(c.slice(0,90))+(c.length>90?'…':'')+'</div>'
+      +'<div class="viz-bar"><i style="width:'+lw+'%;background:'+col+';"></i></div>'
+      +'<div class="viz-res-meta">'+meta.join(' · ')+' · 分 '+Number(h.n).toFixed(2)+'</div>'
+      +'</div>';
+  }).join('');
+  box.querySelectorAll('.viz-res-item').forEach(function(el){
+    el.addEventListener('click',function(){_vzDetail(el.getAttribute('data-id'))});
+  });
+}
+/* 详情浮层 */
+function _vzDetail(id){
+  _vzAllMems().then(function(mems){
+    var m=null;mems.forEach(function(x){if(String(x.id)===String(id))m=x});
+    if(!m)return;
+    var dom=_vzDomain(m),col=DC[dom];
+    var ov=document.createElement('div');ov.className='viz-ov';
+    ov.innerHTML='<div class="viz-detail" style="--dom:'+col+'">'
+      +'<div class="viz-detail-h"><span>'+esc(m.title||'未命名')+'</span><button class="viz-x">×</button></div>'
+      +'<div class="viz-detail-meta">'+dom+' · 重要度 '+(m.importance||'-')+(m.tags&&m.tags.length?' · '+esc(m.tags.join(' / ')):'')+'</div>'
+      +'<div class="viz-detail-c">'+esc(String(m.content||m.summary||''))+'</div>'
+      +(m.summary?'<div class="viz-detail-s">摘要：'+esc(m.summary)+'</div>':'')
+      +'<div class="hint" style="margin-top:10px">id: '+esc(String(m.id||''))+(m.vec&&m.vec.length?' · 已向量化':' · 未向量化')+'</div></div>';
+    document.body.appendChild(ov);
+    function close(){ov.remove()}
+    ov.addEventListener('click',function(e){if(e.target===ov)close()});
+    var x=ov.querySelector('.viz-x');if(x)x.addEventListener('click',close);
+  });
+}
+
+/* ═════ ② 记忆星图 ═════ */
+var _vzM={nodes:[],edges:[],sel:-1,scale:1,px:0,py:0,cw:0,ch:0,canvas:null,ctx:null,
+  iter:0,maxIter:140,pause:false,raf:0,dragN:-1,dragNode:null,pan:false,down:false,moved:false,
+  startX:0,startY:0,lastX:0,lastY:0,zoom2:false,t0:null,ready:false};
+function _vzMapBuild(mems){
+  var cvs=document.getElementById('viz-starmap');var hint=document.getElementById('viz-map-hint');
+  if(!cvs)return;
+  var M=_vzM;M.canvas=cvs;M.ctx=cvs.getContext('2d');
+  var nodes=[],i,j;
+  mems.forEach(function(m){if(!m||!m.id)return;
+    nodes.push({id:String(m.id)+'',m:m,dom:_vzDomain(m),vec:(m.vec&&m.vec.length)?1:0,
+      x:0,y:0,vx:0,vy:0,r:4+(Number(m.importance)||1)*1.4+(m.vec?1.6:0),cx:0,cy:0});});
+  if(nodes.length>500){nodes.sort(function(a,b){return(b.vec-a.vec)||((Number(b.m.importance)||0)-(Number(a.m.importance)||0))});nodes=nodes.slice(0,500)}
+  var doms=Object.keys(DC).filter(function(d){return DC[d]}),di={};doms.forEach(function(d,k){di[d]=k});
+  nodes.forEach(function(n,k){
+    var ang=(di[n.dom]||0)/doms.length*Math.PI*2+(Math.random()-0.5)*0.9;
+    n.x=Math.cos(ang)*(620+Math.random()*680);n.y=Math.sin(ang)*(620+Math.random()*680);
+    n.cx=Math.cos(ang)*420;n.cy=Math.sin(ang)*420;
+  });
+  /* 相似连边（仅向量化节点，计算量上限 260×260） */
+  var vecs=[];nodes.forEach(function(n,k){if(n.vec)vecs.push(k)});
+  var LIM=Math.min(vecs.length,260),edges=[];
+  for(i=0;i<LIM;i++)for(j=i+1;j<LIM;j++){
+    var ni=nodes[vecs[i]],nj=nodes[vecs[j]];
+    if(!ni.m.vec||!nj.m.vec||ni.m.vec.length!==nj.m.vec.length)continue;
+    var c=_xcCos(ni.m.vec,nj.m.vec);
+    if(c>0.86)edges.push({a:vecs[i],b:vecs[j],s:Math.min(1,(c-0.86)/0.14)});
+  }
+  M.nodes=nodes;M.edges=edges;M.sel=-1;M.iter=0;M.pause=false;M.ready=false;
+  _vzResize();_vzFit();
+  if(hint)hint.textContent=(nodes.length?'已加载 '+nodes.length+' 条记忆（'+edges.length+' 条相似边）· 可拖拽 · 滚轮/双指缩放':'暂无记忆，先去记忆库添加条目');
+  M.raf=requestAnimationFrame(_vzStep);
+}
+function _vzResize(){
+  var M=_vzM;if(!M.canvas)return;
+  var r=M.canvas.getBoundingClientRect();
+  var dpr=Math.min(window.devicePixelRatio||1,2);
+  M.cw=r.width;M.ch=r.height;
+  M.canvas.width=Math.max(1,Math.round(r.width*dpr));M.canvas.height=Math.max(1,Math.round(r.height*dpr));
+  if(M.ctx)M.ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+function _vzFit(){
+  var M=_vzM;if(!M.nodes.length)return;
+  var minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9;
+  M.nodes.forEach(function(n){if(n.x<minX)minX=n.x;if(n.x>maxX)maxX=n.x;if(n.y<minY)minY=n.y;if(n.y>maxY)maxY=n.y});
+  var spanX=Math.max(maxX-minX+120,10),spanY=Math.max(maxY-minY+120,10);
+  var sc=Math.min(M.cw/spanX,M.ch/spanY)*0.9;
+  M.scale=Math.min(Math.max(sc,0.12),2.4);
+  M.px=M.cw/2-(minX+maxX)/2*M.scale;M.py=M.ch/2-(minY+maxY)/2*M.scale;
+}
+function _vzStep(){
+  var M=_vzM,N=M.nodes.length;if(!N)return;
+  M.iter++;
+  var rounds=N>320?1:2;
+  for(var s=0;s<rounds;s++){
+    var i,j;
+    for(i=0;i<N;i++){var a=M.nodes[i];
+      for(j=i+1;j<N;j++){var b=M.nodes[j];
+        var dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy;
+        if(d2<90000&&d2>1){var f=2800/d2*0.05,dd=Math.sqrt(d2);
+          a.vx+=dx/dd*f;a.vy+=dy/dd*f;b.vx-=dx/dd*f;b.vy-=dy/dd*f}}
+      a.vx+=(a.cx-a.x)*0.0012;a.vy+=(a.cy-a.y)*0.0012;
+    }
+    for(var e=0;e<M.edges.length;e++){var ed=M.edges[e],A=M.nodes[ed.a],B=M.nodes[ed.b];
+      if(!A||!B)continue;
+      var ddx=A.x-B.x,ddy=A.y-B.y,dd=Math.sqrt(ddx*ddx+ddy*ddy)+0.001;
+      var f2=(dd-120)*0.03*ed.s;A.vx-=ddx/dd*f2;A.vy-=ddy/dd*f2;B.vx+=ddx/dd*f2;B.vy+=ddy/dd*f2}
+    for(i=0;i<N;i++){var n2=M.nodes[i];n2.vx*=0.85;n2.vy*=0.85;n2.x+=n2.vx;n2.y+=n2.vy;
+      if(n2.x>2200)n2.x=2200;if(n2.x<-2200)n2.x=-2200;if(n2.y>1600)n2.y=1600;if(n2.y<-1600)n2.y=-1600}
+  }
+  _vzDraw();
+  if(M.iter<M.maxIter&&!M.pause&&!M.zoom2){M.raf=requestAnimationFrame(_vzStep)}
+  else{M.ready=true}
+}
+function _vzDraw(){
+  var M=_vzM,ctx=M.ctx;if(!ctx||!M.cw)return;
+  var sc=M.scale;
+  ctx.clearRect(0,0,M.cw,M.ch);
+  var e,i;
+  ctx.lineWidth=1;
+  for(e=0;e<M.edges.length;e++){var ed=M.edges[e],a=M.nodes[ed.a],b=M.nodes[ed.b];
+    if(!a||!b)continue;
+    ctx.strokeStyle='rgba(150,180,225,'+(0.08+ed.s*0.3).toFixed(3)+')';
+    ctx.beginPath();ctx.moveTo((a.x+M.px)*sc,(a.y+M.py)*sc);ctx.lineTo((b.x+M.px)*sc,(b.y+M.py)*sc);ctx.stroke();
+  }
+  var glow=M.nodes.length<220;
+  for(i=0;i<M.nodes.length;i++){var n=M.nodes[i];
+    var sx=(n.x+M.px)*sc,sy=(n.y+M.py)*sc;
+    if(sx<-50||sy<-50||sx>M.cw+50||sy>M.ch+50)continue;
+    var col=DC[n.dom]||'#7fa8d9';
+    ctx.beginPath();ctx.arc(sx,sy,n.r*sc,0,Math.PI*2);
+    ctx.fillStyle=col;ctx.globalAlpha=0.9;ctx.fill();ctx.globalAlpha=1;
+    if(glow){ctx.shadowColor=col;ctx.shadowBlur=6;ctx.fill();ctx.shadowBlur=0}
+    if(M.sel===i){ctx.beginPath();ctx.arc(sx,sy,(n.r+2.5)*sc,0,Math.PI*2);ctx.strokeStyle='rgba(255,255,255,0.95)';ctx.lineWidth=1.4;ctx.stroke()}
+  }
+  if(M.sel>=0&&M.nodes[M.sel]){var sn=M.nodes[M.sel];
+    var sxx=(sn.x+M.px)*sc,syy=(sn.y+M.py)*sc;
+    ctx.font='500 11px -apple-system,sans-serif';
+    ctx.fillStyle='rgba(255,255,255,0.95)';
+    ctx.fillText(String(sn.m.title||'').slice(0,16),Math.min(sxx+10,M.cw-90),Math.max(syy-8,12));
+  }
+}
+function _vzNodeAt(sx,sy){
+  var M=_vzM,best=-1,bd=1e9;
+  for(var i=M.nodes.length-1;i>=0;i--){var n=M.nodes[i];
+    var dx=((n.x+M.px)*M.scale)-sx,dy=((n.y+M.py)*M.scale)-sy;
+    var d=Math.sqrt(dx*dx+dy*dy);
+    if(d<n.r*M.scale+9&&d<bd){bd=d;best=i}}
+  return best;
+}
+function _vzBind(){
+  var cvs=document.getElementById('viz-starmap');if(!cvs||cvs.__vzBound)return;cvs.__vzBound=1;
+  var M=_vzM;
+  cvs.addEventListener('pointerdown',function(e){
+    var r=cvs.getBoundingClientRect();var sx=e.clientX-r.left,sy=e.clientY-r.top;
+    M.startX=sx;M.startY=sy;M.moved=false;M.down=true;
+    var i=_vzNodeAt(sx,sy);
+    if(i>=0){M.dragN=i;M.dragNode=M.nodes[i];M.pause=true}
+    else{M.dragN=-1;M.pan=true;M.lastX=e.clientX;M.lastY=e.clientY;cvs.classList.add('grabbing')}
+    if(cvs.setPointerCapture){try{cvs.setPointerCapture(e.pointerId)}catch(_e){}}
+    e.preventDefault();
+  });
+  cvs.addEventListener('pointermove',function(e){
+    if(M.zoom2)return;
+    var r=cvs.getBoundingClientRect();var sx=e.clientX-r.left,sy=e.clientY-r.top;
+    if(Math.abs(sx-M.startX)+Math.abs(sy-M.startY)>7)M.moved=true;
+    if(M.dragNode){M.dragNode.x=(sx-M.px)/M.scale;M.dragNode.y=(sy-M.py)/M.scale;
+      M.dragNode.vx=0;M.dragNode.vy=0;_vzDraw()}
+    else if(M.pan){M.px+=e.clientX-M.lastX;M.py+=e.clientY-M.lastY;
+      M.lastX=e.clientX;M.lastY=e.clientY;_vzDraw()}
+    e.preventDefault();
+  });
+  cvs.addEventListener('pointerup',function(e){
+    var r=cvs.getBoundingClientRect();var sx=e.clientX-r.left,sy=e.clientY-r.top;
+    if(!M.moved&&M.dragN>=0){var n=M.nodes[M.dragN];
+      if(n){M.sel=M.dragN;_vzDraw();_vzDetail(n.id)}}
+    else if(!M.moved&&M.dragN<0){M.sel=-1;_vzDraw()}
+    M.dragNode=null;M.dragN=-1;M.pan=false;M.down=false;
+    cvs.classList.remove('grabbing');
+    e.preventDefault();
+  });
+  cvs.addEventListener('wheel',function(e){e.preventDefault();
+    if(!M.cw)return;
+    var r=cvs.getBoundingClientRect();var sx=e.clientX-r.left,sy=e.clientY-r.top;
+    var f=e.deltaY<0?1.12:0.89;
+    var nx=(sx-M.px)/M.scale,ny=(sy-M.py)/M.scale;
+    M.scale=Math.min(Math.max(M.scale*f,0.12),3);
+    M.px=sx-nx*M.scale;M.py=sy-ny*M.scale;_vzDraw();
+  },{passive:false});
+  cvs.addEventListener('touchstart',function(e){
+    if(e.touches.length===2&&!M.zoom2){
+      M.zoom2=true;M.pan=false;M.dragNode=null;
+      var a=e.touches[0],b=e.touches[1];
+      M.t0={d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),s:M.scale,
+        x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2,px:M.px,py:M.py};
+    }
+  },{passive:true});
+  cvs.addEventListener('touchmove',function(e){
+    if(M.zoom2&&e.touches.length===2&&M.t0){
+      var a=e.touches[0],b=e.touches[1];
+      var d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+      var cx=(a.clientX+b.clientX)/2,cy=(a.clientY+b.clientY)/2;
+      var f=d/(M.t0.d||1);
+      M.scale=Math.min(Math.max(M.t0.s*f,0.12),3);
+      var r=cvs.getBoundingClientRect();
+      /* 以双指中心为锚缩放 + 平移 */
+      var nx=(M.t0.x-r.left-M.t0.px)/M.t0.s,ny=(M.t0.y-r.top-M.t0.py)/M.t0.s;
+      M.px=cx-r.left-nx*M.scale;M.py=cy-r.top-ny*M.scale;
+      _vzDraw();e.preventDefault();
+    }
+  },{passive:false});
+  cvs.addEventListener('touchend',function(){M.zoom2=false;M.t0=null},{passive:true});
+  if(window.ResizeObserver){var ro=new ResizeObserver(function(){if(M.canvas)_vzResize()});ro.observe(cvs)}
+}
+
+/* ═════ ③ 召回热度 ═════ */
+function _vzHeat(){
+  var box=document.getElementById('viz-heat');if(!box)return;
+  var log=[];try{log=JSON.parse(localStorage.getItem(_vzHeatKey)||'[]')}catch(e){}
+  if(!Array.isArray(log)||!log.length){
+    box.innerHTML='<p class="hint">暂无召回记录。AI 聊前自动检索记忆库后，这里会累积热度数据（最近 100 次）。</p>';
+    return;
+  }
+  _vzAllMems().then(function(mems){
+    var byId={};mems.forEach(function(m){byId[String(m.id)]=m});
+    var qMap={},mMap={},domCnt={},tot=log.length,hitTot=0;
+    log.forEach(function(r){
+      if(r.q)qMap[r.q]=(qMap[r.q]||0)+1;
+      (r.h||[]).forEach(function(h){if(!h||h.id==null)return;
+        hitTot++;var k=String(h.id);
+        if(!mMap[k]){var mm=byId[k],dom=mm?_vzDomain(mm):'日常';
+          mMap[k]={n:0,title:mm?(mm.title||String(mm.content||'').slice(0,26)||'?'):String(h.x||'').slice(0,26),dom:dom};
+          domCnt[dom]=(domCnt[dom]||0)+1}
+        mMap[k].n++;
+      });
+    });
+    var qs=Object.keys(qMap).map(function(k){return{k:k,n:qMap[k]}}).sort(function(a,b){return b.n-a.n}).slice(0,12);
+    var ms=Object.keys(mMap).map(function(k){return mMap[k]}).sort(function(a,b){return b.n-a.n}).slice(0,8);
+    var maxN=ms.length?ms[0].n:1;
+    var html='<div class="viz-heat-grid">'
+      +'<div class="viz-heat-stat"><b>'+tot+'</b><span>检索次数</span></div>'
+      +'<div class="viz-heat-stat"><b>'+hitTot+'</b><span>命中次数</span></div>'
+      +'<div class="viz-heat-stat"><b>'+(tot?(hitTot/tot).toFixed(1):'0')+'</b><span>次均命中</span></div>'
+      +'</div>';
+    if(qs.length){
+      html+='<div class="sec-label" style="margin-top:14px">常被想起的查询</div>'
+        +qs.map(function(q){return '<span class="viz-q-chip">'+esc(q.k)+'<b>×'+q.n+'</b></span>'}).join('');
+    }
+    if(ms.length){
+      html+='<div class="sec-label" style="margin-top:14px">高召回记忆</div>'
+        +ms.map(function(m){return '<div class="viz-hitem"><span class="t">'+esc(m.title)+'</span>'
+          +'<span class="bar"><i style="width:'+Math.max(4,Math.round(m.n/maxN*100))+'%"></i></span>'
+          +'<span class="n">'+m.n+'</span></div>'}).join('');
+    }
+    var domKeys=Object.keys(DC).filter(function(d){return DC[d]});
+    html+='<div class="sec-label" style="margin-top:14px">召回域分布</div>'
+      +'<div class="viz-dbar">'+domKeys.map(function(d){var n=domCnt[d]||0;
+        return '<i style="width:'+(hitTot?Math.round(n/hitTot*100):0)+'%;background:'+DC[d]+'"></i>'}).join('')+'</div>'
+      +domKeys.map(function(d){var n=domCnt[d]||0;
+        return '<div class="viz-dom-row"><i class="viz-dot" style="background:'+DC[d]+'"></i>'+d+' · '+n+' 次</div>'}).join('');
+    box.innerHTML=html;
+  });
+}
+
+/* ═════ 分区渲染入口 ═════ */
+function _renderViz(){
+  _vzAllMems().then(function(mems){
+    /* 记忆集合变化 → 重建星图缓存 */
+    if(_vzCache.count!==mems.length){_vzCache.count=mems.length;_vzM.ready=false}
+    if(!_vzM.ready||!_vzM.nodes.length){
+      if(_vzM.raf)cancelAnimationFrame(_vzM.raf);
+      _vzMapBuild(mems);
+    }else{_vzResize();_vzDraw()}
+    _vzBind();
+    var lg=document.getElementById('viz-legend');
+    if(lg)lg.innerHTML=Object.keys(DC).filter(function(d){return DC[d]}).map(function(d){
+      return '<span><i class="viz-dot" style="background:'+DC[d]+'"></i>'+d+'</span>'}).join('')
+      +'<span class="vl-right">'+mems.length+' 条记忆</span>';
+    _vzHeat();
+  });
+}
+SEC_RENDER['memory:viz']=_renderViz;
+
+/* 搜索交互（事件委托，幂等） */
+document.addEventListener('click',function(e){
+  if(e.target&&(e.target.id==='viz-go'||(e.target.closest&&e.target.closest('#viz-go')))){
+    var q=document.getElementById('viz-q');if(!q)return;
+    var box=document.getElementById('viz-res');
+    if(box)box.innerHTML='<p class="hint">检索中…（含向量匹配，稍候）</p>';
+    _vzSearch(q.value).then(_vzRenderRes);
+  }
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&e.target&&e.target.id==='viz-q'){e.preventDefault();
+    var q=document.getElementById('viz-q'),box=document.getElementById('viz-res');
+    if(box)box.innerHTML='<p class="hint">检索中…（含向量匹配，稍候）</p>';
+    _vzSearch(q.value).then(_vzRenderRes);
+  }
+});
+})();
+
 </script>
 </body>
 </html>
