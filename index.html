@@ -565,8 +565,21 @@ body.theme-infernal .cv-mini{background:rgba(24,33,58,0.55)}
 .cv-stk-cell{height:56px;display:flex;align-items:center;justify-content:center;font-size:2rem;cursor:pointer;border-radius:12px;border:1px solid var(--glass-line);background:rgba(255,255,255,0.5);user-select:none}
 body.theme-infernal .cv-stk-cell{background:rgba(24,33,58,0.5)}
 .cv-stk-cell:active{border-color:var(--acc);transform:scale(0.94)}
+/* v1xx-p：自定义表情包面板（包 tabs / 导入 / 网格缩略图 / 渲染大图） */
+.cv-stk-tabs{display:flex;gap:.3rem;overflow-x:auto;padding:.1rem .1rem .4rem;max-width:100%}
+.cv-stk-tab{flex:0 0 auto;padding:.28rem .62rem;border-radius:.65rem;font-size:.72rem;background:rgba(128,128,128,.14);color:var(--tx2);border:1px solid transparent;white-space:nowrap;cursor:pointer}
+.cv-stk-tab.on{background:var(--acc,#4a7dff);color:#fff}
+.cv-stk-ops{display:flex;gap:.4rem;margin:.15rem 0 .3rem}
+.cv-stk-btn{flex:1;padding:.4rem .3rem;text-align:center;border-radius:.6rem;background:rgba(128,128,128,.14);color:var(--tx2);font-size:.72rem;cursor:pointer}
+.cv-stk-btn.danger{color:#e2574c}
+.cv-stk-cell{flex-direction:column;gap:2px;font-size:1rem}
+.cv-stk-cell img{max-width:40px;max-height:40px;object-fit:contain;border-radius:6px}
+.cv-stk-cell .cv-stk-nm{font-size:.58rem;color:var(--tx2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.1}
+.chat-sticker img{max-width:5.2em;max-height:5.2em;vertical-align:middle;border-radius:.3em}
 #cv-auto-tip{position:absolute;right:12px;bottom:calc(80px + var(--sab));z-index:55;background:rgba(20,30,55,0.82);color:#fff;font-size:0.72rem;padding:5px 12px;border-radius:12px;pointer-events:none}
 body.theme-infernal #cv-auto-tip{background:rgba(10,16,32,0.85)}
+/* v2xx-p：表情包协议渲染——[表情包:名称] 文本标签在渲染层动态解析为 sticker 节点（对齐 AIVP StickerBubble） */
+.chat-sticker{display:inline-block;font-size:2.05em;line-height:1.15;vertical-align:middle;margin:0 0.08em;user-select:none;-webkit-user-select:none}
 .cs-item.on{color:var(--acc)}
 .cs-item.on .cs-val{color:var(--acc)}
 .att-thumb{width:58px;height:58px;flex:none;border-radius:12px;border:1px solid var(--glass-line);background:var(--soft) center/cover no-repeat;position:relative}
@@ -3392,6 +3405,7 @@ self.addEventListener(&#x27;fetch&#x27;,function(e){
   <div id="cv-sticker-panel" class="glass" hidden>
     <div class="cv-emoji-head"><span class="cv-emoji-title">表情包</span><span class="cv-emoji-x" id="cv-sticker-x">✕</span></div>
     <div class="cv-stk-grid" id="cv-stk-grid"></div>
+    <input type="file" id="cv-stk-file" accept="image/*" multiple hidden>
   </div>
   <div id="cv-auto-tip" hidden></div>
   <div class="cv-input glass">
@@ -3947,8 +3961,8 @@ self.addEventListener(&#x27;fetch&#x27;,function(e){
 const SEC_RENDER={};/* v68-m f1：分区渲染注册表——声明前移到脚本最顶端。v67-m 在 Visual 段注册 visual:main 时早于原声明（const TDZ，ReferenceError），整块脚本解析即崩、全站只剩占位符打不开。 */
 var _gwFeedQ=[];/* v122-p：#1 回传信箱补建——ws_loc/ws_weather/ws_phone/AI付 的调取结果暂存于此、随下一条消息回传给 AI。此前该变量从未声明，严格模式下 5 处投递/取件全部抛 ReferenceError 并被 try 静默吞掉，权限与数据都正常、AI 却始终收不到结果 */
 /* ═══════════ 与电脑版一致的数据层 ═══════════ */
-const DB_NAME='InternalBeyondDB',DB_VER=15;/* v72-m：+feed（Internet Beyond 动态流），两端同轮 14→15 */
-const IB_STORES=['posts','categories','about','music','apiSettings','chatMessages','letters','apiConfigs','groups','blogComments','memories','chatThreads','chatSummaries','uploadedFiles','blogAnnotations','projects','projectFiles','autoMemory','calEvents','calNotes','calLedger','feed'];
+const DB_NAME='InternalBeyondDB',DB_VER=16;/* v1xx-p：+stickerPacks（自定义表情包仓），手机端独立扩仓，不影响电脑版同轮逻辑 */
+const IB_STORES=['posts','categories','about','music','apiSettings','chatMessages','letters','apiConfigs','groups','blogComments','memories','chatThreads','chatSummaries','uploadedFiles','blogAnnotations','projects','projectFiles','autoMemory','calEvents','calNotes','calLedger','feed','stickerPacks'];
 let db=null;
 function openDB(){return new Promise((resolve,reject)=>{
   const req=indexedDB.open(DB_NAME,DB_VER);
@@ -4027,7 +4041,7 @@ const AM_PRIOS=['always','normal','low'];
    电脑版保存 API 配置时按白名单重建整条记录，手机若把私有字段直接写在 apiConfigs 上，
    电脑那边一保存就会被抹掉——所以手机专属的"每 AI 上下文参数 / 聊天显示 / MCP"全部落在
    apiSettings 里 id='mobilePrefs' 的独立记录：电脑版不认识这个 id，不读也不写，但导入导出能原样往返。 */
-const MP_DEF={id:'mobilePrefs',perAi:{},chat:{mdMode:'full',bubbleSplit:false,enterSend:false,autoSendSec:0},mcp:{enabled:false,confirm:true,servers:[]},bt:{aiTools:false},profile:{},lock:{on:true}};/* v101-m：新装/无锁屏字段时默认开启上滑锁屏 */
+const MP_DEF={id:'mobilePrefs',perAi:{},chat:{mdMode:'full',bubbleSplit:false,enterSend:false,autoSendSec:0,autoSendOn:false},mcp:{enabled:false,confirm:true,servers:[]},bt:{aiTools:false},profile:{},lock:{on:true}};/* v101-m：新装/无锁屏字段时默认开启上滑锁屏 */
 let _mp=null,_mpFromDb=false;
 try{document.addEventListener('visibilitychange',function(){if(!document.hidden)_mpFromDb=false});window.addEventListener('focus',function(){_mpFromDb=false})}catch(e){}/* v84-m r11：回前台失效缓存（审查 P1-6） */
 /* v66-m 核心修复：原实现读库失败也把默认值落进 _mp 缓存（DB 未就绪时必失败），
@@ -4037,9 +4051,10 @@ try{document.addEventListener('visibilitychange',function(){if(!document.hidden)
    下次调用重读；saveMP 在从未成功读库时先补读并以库为底合并，防止默认值覆写。 */
 function _mpNorm(m){
   if(!m.perAi)m.perAi={};
-  if(!m.chat)m.chat={mdMode:'full',bubbleSplit:false,enterSend:false,autoSendSec:0};
+  if(!m.chat)m.chat={mdMode:'full',bubbleSplit:false,enterSend:false,autoSendSec:0,autoSendOn:false};
   else{/* v1xx-p：回车发送/键盘收起自动发送 字段兜底 */
     if(typeof m.chat.enterSend!=='boolean')m.chat.enterSend=false;
+    if(typeof m.chat.autoSendOn!=='boolean')m.chat.autoSendOn=false;
     if(typeof m.chat.autoSendSec!=='number'||m.chat.autoSendSec<0)m.chat.autoSendSec=0;}
   if(!m.bt)m.bt={aiTools:false};if(!Array.isArray(m.bt.manuals))m.bt.manuals=[];/* v139-a·v137-p 任务2 */
   if(!m.mcp)m.mcp={enabled:false,confirm:true,servers:[]};
@@ -7130,6 +7145,45 @@ function memOpCard(r){/* v58-m 照电脑端 _amBuildMemCard：折叠卡，详情
   if(r.detail)d.addEventListener('click',e=>{e.stopPropagation();d.classList.toggle('expanded')});
   return d;
 }
+/* ── 表情包协议渲染：容器内文本节点中的 [表情包:名称] → span.chat-sticker（AIVP rich-message-parser 同构：
+     文本段照旧渲染，sticker 段替换为贴纸节点，图文混排原生成立）。只扫描含「表情包」三字的文本节点，成本可忽略 ── */
+function _stkScanNodes(root){
+  if(!root)return;
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null);
+  const hits=[];
+  let n;
+  while((n=walker.nextNode())){
+    const v=n.nodeValue;
+    if(v&&v.indexOf('表情包')>=0){
+      _STK_TAG_RE.lastIndex=0;
+      if(_STK_TAG_RE.test(v))hits.push(n);
+    }
+  }
+  hits.forEach(tn=>{
+    const v=tn.nodeValue;
+    const frag=document.createDocumentFragment();
+    let last=0,m;
+    _STK_TAG_RE.lastIndex=0;
+    while((m=_STK_TAG_RE.exec(v))!==null){
+      if(m.index>last)frag.appendChild(document.createTextNode(v.slice(last,m.index)));
+      const nm=m[1].trim();
+      const url=_stkFind(nm);/* 自定义表情包命中 → 渲染图片；未命中 → 原样保留文本标签 */
+      if(url){
+        const sp=document.createElement('span');
+        sp.className='chat-sticker';
+        const im=document.createElement('img');
+        im.src=url;im.alt=nm;im.loading='lazy';
+        sp.appendChild(im);
+        frag.appendChild(sp);
+      }else{
+        frag.appendChild(document.createTextNode(m[0]));
+      }
+      last=m.index+m[0].length;
+    }
+    if(last<v.length)frag.appendChild(document.createTextNode(v.slice(last)));
+    tn.parentNode.replaceChild(frag,tn);
+  });
+}
 function fillTextInto(el,text,md){
   if(md){
     el.classList.add('mdr');
@@ -7145,6 +7199,7 @@ function fillTextInto(el,text,md){
   }else{
     el.appendChild(document.createTextNode(text));
   }
+  _stkScanNodes(el);/* v2：渲染期解析 [表情包:名称] 文本标签 */
 }
 /* AI 正文渲染：指令卡按序合并 wsResults；文本按 MD 模式 + 分段气泡 */
 /* ═══ v65-m：空头支票检测（电脑端 _wsCheckPhantom 的手机端对应物）
@@ -7487,46 +7542,165 @@ document.getElementById('cv-plus').addEventListener('click',()=>{
     {label:'发送文件（文本类）',fn:()=>{if(_pendFiles.length>=4){toast('一次最多 4 个文件');return}document.getElementById('chat-doc-file').click()}}
   ]);
 });
-/* ═══════════ v1xx-p：表情包 / 回车发送 / 键盘收起自动发送 ═══════════ */
-/* ── 表情包（贴纸）：canvas 把大号 emoji 渲染成 PNG dataURL，走 _pendImgs 图片链路，
-     与真实附图同构：drawAttach 预览 → sendMsg 时进 um.images → buildMsgEl 渲染 ── */
-const _STICKER_LIST=['😀','😂','😍','😭','👍','❤️','🔥','🎉','😎','🤔','😡','🥳','🐶','🍕','⚽','🌙'];
-function _stkPng(emoji,size){
-  try{
-    const c=document.createElement('canvas');c.width=c.height=size;
-    const ctx=c.getContext('2d');
-    ctx.font=Math.floor(size*0.78)+'px sans-serif';
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(emoji,size/2,size/2+size*0.04);
-    return c.toDataURL('image/png');
-  }catch(e){return null}
+/* ═══════════ v1xx-p：表情包 / 回车发送 / 键盘收起自动回复 ═══════════ */
+/* ── 表情包（贴纸）v2：协议化——点击面板只往输入框插入文本标签 [表情包:名称]，
+     消息以纯文本入库/上行（与 AIVP rich-message-parser 同构），渲染层再动态解析成 sticker 节点 ── */
+/* ── 自定义表情包（对齐 AIVP custom-sticker-storage）：元数据+图片直存 IndexedDB stickerPacks 仓，
+     用户自建包、自导入图片（动图保留、静图压缩到 200px 内），面板/渲染/AI 协议三方共用 ── */
+let _stkPacks=[],_stkUrlBy={},_stkCurPack=null;
+async function _stkLoadAll(){
+  try{_stkPacks=await dbGetAll('stickerPacks')}catch(e){_stkPacks=[]}
+  _stkUrlBy={};
+  _stkPacks.forEach(p=>{(p.stickers||[]).forEach(s=>{if(s&&s.dataUrl)_stkUrlBy[s.name]=s.dataUrl})});
 }
-function _stkPanelBuild(){
+function _stkFind(name){return _stkUrlBy[name]||''}
+function _stkNewId(prefix){return prefix+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)}
+async function _stkSave(pack){try{await dbPut('stickerPacks',pack)}catch(e){toast('表情包保存失败')}}
+async function _stkDelete(packId){try{await dbDelete('stickerPacks',packId)}catch(e){}}
+/* 压缩：GIF 原样保留（保动图）；其他等比例缩进 200px → webp0.8（不支持时 png） */
+function _stkCompress(blob){
+  return new Promise(resolve=>{
+    if(blob&&blob.type==='image/gif'){
+      const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>resolve('');r.readAsDataURL(blob);return;
+    }
+    const url=URL.createObjectURL(blob);
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const MAX=200;let w=img.naturalWidth,h=img.naturalHeight;
+        if(w>MAX||h>MAX){const sc=MAX/Math.max(w,h);w=Math.round(w*sc);h=Math.round(h*sc)}
+        const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        let out='';try{out=cv.toDataURL('image/webp',0.8)}catch(e){}
+        if(!out||out.indexOf('data:image/webp')!==0){try{out=cv.toDataURL('image/png')}catch(e){out=''}}
+        URL.revokeObjectURL(url);resolve(out);
+      }catch(e){URL.revokeObjectURL(url);resolve('')}
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);resolve('')};
+    img.src=url;
+  });
+}
+/* 批量导入到当前包：名=文件名去扩展名，重名自动加 (2) 后缀 */
+async function _stkImport(files){
+  if(!_stkCurPack){toast('先点「＋新建」创建表情包');return}
+  const pack=_stkPacks.find(p=>p.id===_stkCurPack);if(!pack)return;
+  const used=new Set((pack.stickers||[]).map(s=>s.name));
+  let ok=0;
+  for(const f of files){
+    if(f.size>8*1024*1024){toast((f.name||'')+'超过 8MB，跳过');continue}
+    const url=await _stkCompress(f);
+    if(!url){toast((f.name||'')+'读取失败，跳过');continue}
+    let nm=(f.name||'').replace(/\.[^.]+$/,'').trim()||'表情';
+    let base=nm,i=2;while(used.has(nm)){nm=base+'('+i+')';i++}
+    used.add(nm);
+    pack.stickers=pack.stickers||[];
+    pack.stickers.push({id:_stkNewId('stk'),name:nm,dataUrl:url});
+    ok++;
+  }
+  await _stkSave(pack);await _stkLoadAll();
+  _stkPanelBuild();
+  toast('已导入 '+ok+' 张表情');
+}
+/* AIVP 同款正则：C="\\s*[：:]\\s*"（半角/全角冒号 + 允许周围空格） */
+const _STK_TAG_RE=/\[表情包\s*[：:]\s*([^\]]+)\]/g;
+function _stkInsertTag(em){
+  const tag='[表情包:'+em+']';
+  const v=ta.value;
+  const s=('selectionStart' in ta)?ta.selectionStart:v.length;
+  const e=('selectionEnd' in ta)?ta.selectionEnd:s;
+  ta.value=v.slice(0,s)+tag+v.slice(e);
+  try{ta.setSelectionRange(s+tag.length,s+tag.length)}catch(err){}
+  autoGrow();
+  _autoSendCancel();/* 程序化赋值不触发 input 事件，显式取消防抖窗口 */
+  const p=document.getElementById('cv-sticker-panel');if(p)p.hidden=true;
+  ta.focus();
+  toast('已插入表情包，点发送');
+}
+async function _stkPanelBuild(){
   const grid=document.getElementById('cv-stk-grid');if(!grid)return;
+  await _stkLoadAll();
+  if(_stkCurPack&&!_stkPacks.some(p=>p.id===_stkCurPack))_stkCurPack=null;
+  if(!_stkCurPack&&_stkPacks.length)_stkCurPack=_stkPacks[0].id;
   grid.innerHTML='';
-  _STICKER_LIST.forEach(em=>{
-    const cell=document.createElement('div');cell.className='cv-stk-cell';cell.textContent=em;
-    cell.addEventListener('click',()=>{
-      if(_pendImgs.length>=4){toast('一次最多 4 张');return}
-      const u=_stkPng(em,160);
-      if(!u){toast('表情包生成失败');return}
-      _pendImgs.push(u);drawAttach();
-      document.getElementById('cv-sticker-panel').hidden=true;
-      toast('表情包已加入，点发送');
+  /* 包 tabs（横滑）＋「＋新建」 */
+  const tabs=document.createElement('div');tabs.className='cv-stk-tabs';
+  _stkPacks.forEach(p=>{
+    const t=document.createElement('div');
+    t.className='cv-stk-tab'+(p.id===_stkCurPack?' on':'');
+    t.textContent=p.name;
+    t.addEventListener('click',()=>{_stkCurPack=p.id;_stkPanelBuild()});
+    pressable(t,()=>{/* 长按：管理包 */
+      actionSheet([
+        {label:'重命名「'+p.name+'」',fn:()=>{const nn=prompt('表情包名称',p.name);if(nn&&nn.trim()){p.name=nn.trim().slice(0,40);_stkSave(p).then(()=>_stkPanelBuild())}}},
+        {label:'删除「'+p.name+'」及其全部表情',danger:true,fn:async()=>{await _stkDelete(p.id);_stkCurPack=null;_stkPanelBuild();toast('已删除')}}
+      ]);
+    });
+    tabs.appendChild(t);
+  });
+  const pl=document.createElement('div');pl.className='cv-stk-tab';pl.textContent='＋ 新建';
+  pl.addEventListener('click',async()=>{
+    const nm=prompt('表情包名称');if(!nm||!nm.trim())return;
+    const pack={id:_stkNewId('pack'),name:nm.trim().slice(0,40),stickers:[],createdAt:new Date().toISOString()};
+    _stkPacks.push(pack);await _stkSave(pack);_stkCurPack=pack.id;_stkPanelBuild();
+  });
+  tabs.appendChild(pl);
+  grid.appendChild(tabs);
+  /* 操作行 */
+  const ops=document.createElement('div');ops.className='cv-stk-ops';
+  const imp=document.createElement('div');imp.className='cv-stk-btn';imp.textContent='⇪ 导入图片（可多选）';
+  imp.addEventListener('click',()=>{const fi=document.getElementById('cv-stk-file');if(fi)fi.click()});
+  ops.appendChild(imp);
+  const del=document.createElement('div');del.className='cv-stk-btn danger';del.textContent='删除当前包';
+  del.addEventListener('click',()=>{
+    const pk=_stkPacks.find(p=>p.id===_stkCurPack);if(!pk)return;
+    actionSheet([
+      {label:'确认删除「'+pk.name+'」及其全部表情',danger:true,fn:async()=>{await _stkDelete(pk.id);_stkCurPack=null;_stkPanelBuild();toast('已删除')}}
+    ]);
+  });
+  ops.appendChild(del);
+  grid.appendChild(ops);
+  /* 网格 */
+  const pack=_stkPacks.find(p=>p.id===_stkCurPack);
+  if(!pack||!(pack.stickers||[]).length){
+    const em=document.createElement('div');em.style.cssText='grid-column:1/-1;text-align:center;padding:1.4rem 0;color:var(--tx2);font-size:.75rem;opacity:.7';
+    em.textContent=pack?'还没有表情，点「导入图片」添加':'还没有表情包，点「＋新建」创建后再导入图片';
+    grid.appendChild(em);return;
+  }
+  pack.stickers.forEach(s=>{
+    const cell=document.createElement('div');cell.className='cv-stk-cell';cell.title='长按管理';
+    const img=document.createElement('img');img.src=s.dataUrl;img.alt=s.name;img.loading='lazy';
+    const nm=document.createElement('div');nm.className='cv-stk-nm';nm.textContent=s.name;
+    cell.appendChild(img);cell.appendChild(nm);
+    cell.addEventListener('click',()=>{_stkInsertTag(s.name)});
+    pressable(cell,()=>{
+      actionSheet([
+        {label:'重命名「'+s.name+'」',fn:()=>{const nn=prompt('表情名称',s.name);if(nn&&nn.trim()){s.name=nn.trim().slice(0,30);_stkSave(pack).then(()=>_stkPanelBuild())}}},
+        {label:'删除这张表情',danger:true,fn:()=>{pack.stickers=pack.stickers.filter(x=>x.id!==s.id);_stkSave(pack).then(()=>_stkPanelBuild())}}
+      ]);
     });
     grid.appendChild(cell);
   });
 }
+/* 文件导入监听（change 后清空 value，允许重复选同一批文件） */
+document.getElementById('cv-stk-file').addEventListener('change',async e=>{
+  const fs=Array.from(e.target.files||[]);e.target.value='';
+  if(fs.length)_stkImport(fs);
+});
 function _stkPanelToggle(){
   const p=document.getElementById('cv-sticker-panel');if(!p)return;
-  if(p.hidden){_stkPanelBuild();p.hidden=false}else p.hidden=true;
+  if(p.hidden){_stkPanelBuild();p.hidden=false;_autoSendCancel()}
+  else{p.hidden=true;_autoSendPlan()}
 }
 document.getElementById('cv-sticker').addEventListener('click',e=>{e.stopPropagation();_stkPanelToggle()});
-document.getElementById('cv-sticker-x').addEventListener('click',()=>{document.getElementById('cv-sticker-panel').hidden=true});
+document.getElementById('cv-sticker-x').addEventListener('click',()=>{
+  const p=document.getElementById('cv-sticker-panel');if(p)p.hidden=true;
+  _autoSendPlan();
+});
 document.addEventListener('click',e=>{
   const p=document.getElementById('cv-sticker-panel');if(!p||p.hidden)return;
   if(e.target.closest('#cv-sticker-panel')||e.target.closest('#cv-sticker'))return;
   p.hidden=true;
+  _autoSendPlan();
 });
 /* ── 回车发送：Enter 发送、Shift+Enter 换行（开关 mobilePrefs.chat.enterSend）── */
 ta.addEventListener('keydown',async e=>{
@@ -7536,53 +7710,69 @@ ta.addEventListener('keydown',async e=>{
     if(mp&&mp.chat&&mp.chat.enterSend){e.preventDefault();sendMsg()}
   }catch(err){}
 });
-/* ── 键盘收起 X 秒自动发送：visualViewport 高度正向偏移 >80px 判定收起，
-     收起后按 mobilePrefs.chat.autoSendSec 倒计时；打字/发送中/已清空则取消 ── */
-let _vvLastH=0,_vvKeyUp=false,_autoSendT=null,_autoTickT=null;
+/* ── 键盘收起 X 秒自动回复：对齐 AIVP useKeyboardDismissAutoSend——
+     收起键盘（或关掉表情面板）→ 开 N 秒防抖窗口；窗口内重新拉起键盘、点回输入框、
+     继续打字、打开表情面板都会取消；N 秒安静过去才触发 AI 回复（genReply），
+     且触发那一刻把现场完整查一遍：有未回复用户消息、非生成中、输入框为空、
+     焦点不在输入框、面板未开——任何一条不满足都放弃（AIVP fire 同款判定顺序） ── */
+let _autoSendT=null;
 function _autoSendCancel(){
   if(_autoSendT){clearTimeout(_autoSendT);_autoSendT=null}
-  if(_autoTickT){clearTimeout(_autoTickT);_autoTickT=null}
   const tip=document.getElementById('cv-auto-tip');if(tip)tip.hidden=true;
+}
+/* 最后一条非 system 消息必须是 user，否则「什么都没发也收键盘」会误触发（AIVP hasUnrepliedUserMessage 同款） */
+function _hasUnrepliedUserMsg(){
+  for(let i=_msgs.length-1;i>=0;i--){
+    const m=_msgs[i];if(!m)continue;
+    if(m.role==='system')continue;
+    return m.role==='user';
+  }
+  return false;
+}
+async function _autoSendFire(){
+  _autoSendT=null;
+  const cfg=_activeCfg;if(!cfg)return;
+  if(_sendKeys.has(_convKey(cfg)))return;                        /* 正在生成 → 不发 */
+  if(!_hasUnrepliedUserMsg())return;                             /* 无未回复用户消息 → 不发 */
+  if(ta.value.trim()||_pendImgs.length||_pendFiles.length)return; /* 输入框有草稿/附件 → 用户还要说 */
+  if(document.activeElement===ta)return;                         /* 焦点又回到输入框 → 取消 */
+  const p=document.getElementById('cv-sticker-panel');if(p&&!p.hidden)return;/* 面板开着 → 取消 */
+  const tip=document.getElementById('cv-auto-tip');if(tip)tip.hidden=true;
+  genReply(cfg);                                                 /* 触发 AI 回复 */
 }
 async function _autoSendPlan(){
   try{
     const mp=await loadMP();
-    const sec=(mp&&mp.chat&&mp.chat.autoSendSec)||0;
-    if(sec<=0)return;
-    if(!(ta.value.trim()||_pendImgs.length||_pendFiles.length))return;
-    if(_sendKeys.has(_convKey(_activeCfg)))return;
-    let left=sec;
+    if(!(mp&&mp.chat&&mp.chat.autoSendOn===true))return;/* 开关未开 → 不计划（AIVP isKeyboardAutoSendEnabled 同款） */
+    const sec=Number((mp&&mp.chat&&mp.chat.autoSendSec)||0)||0;
+    _autoSendCancel();
     const tip=document.getElementById('cv-auto-tip');
-    const show=()=>{if(tip){tip.hidden=false;tip.textContent='键盘收起 '+left+' 秒后自动发送'}};
-    show();
-    const tick=()=>{
-      if(!(ta.value.trim()||_pendImgs.length||_pendFiles.length)){_autoSendCancel();return}
-      if(_sendKeys.has(_convKey(_activeCfg))){_autoSendCancel();return}
-      left--;
-      if(left<=0){
-        if(tip)tip.hidden=true;
-        if(ta.value.trim()||_pendImgs.length||_pendFiles.length)sendMsg();
-        _autoSendCancel();
-        return;
-      }
-      show();
-      _autoTickT=setTimeout(tick,1000);
-    };
-    _autoTickT=setTimeout(tick,1000);
+    if(tip){tip.hidden=false;tip.textContent='键盘收起 '+(sec||0)+' 秒后触发回复'}
+    _autoSendT=setTimeout(_autoSendFire,sec*1000);
   }catch(e){}
 }
+/* 键盘开合检测：visualViewport 尺寸 + 输入框焦点推断（AIVP 同款状态机），
+   rAF 合并 resize，避免页面重绘抖动 */
 (function(){
-  const vv=window.visualViewport;
-  if(!vv)return;
-  _vvLastH=vv.height;
-  vv.addEventListener('resize',()=>{
-    const h=vv.height,delta=h-_vvLastH;
-    if(delta>80&&_vvKeyUp){_vvKeyUp=false;_autoSendCancel();_autoSendPlan()}
-    else if(delta<-80){_vvKeyUp=true;_autoSendCancel()}
-    _vvLastH=h;
-  });
+  const vv=window.visualViewport;if(!vv)return;
+  let _vvLastH=vv.height,_vvKbOpen=false,_vvFrame=0;
+  const _KB_INSET=80;
+  const onVvResize=()=>{
+    if(_vvFrame)cancelAnimationFrame(_vvFrame);
+    _vvFrame=requestAnimationFrame(()=>{
+      _vvFrame=0;
+      const h=vv.height,delta=h-_vvLastH;
+      _vvLastH=h;
+      if(delta<-_KB_INSET){_vvKbOpen=true;_autoSendCancel();return}  /* 键盘弹起 → 作废窗口 */
+      if(delta>_KB_INSET&&_vvKbOpen){_vvKbOpen=false;_autoSendPlan()} /* 键盘收起 → 开防抖窗口 */
+    });
+  };
+  vv.addEventListener('resize',onVvResize);
+  vv.addEventListener('scroll',onVvResize);
+  window.addEventListener('resize',onVvResize);
 })();
-/* 再次输入即取消自动发送（键盘重新弹出或继续打字都不误发） */
+/* 再次聚焦/输入即取消自动回复（键盘重新弹出或继续打字都不误发） */
+ta.addEventListener('focus',()=>{_autoSendCancel()});
 ta.addEventListener('input',()=>{_autoSendCancel()});
 document.getElementById('chat-doc-file').addEventListener('change',async e=>{
   const files=Array.from(e.target.files||[]).slice(0,4);
@@ -8625,6 +8815,8 @@ async function genReply(cfg,internalCtx){
     const hist=buildHist(myMsgs,_histLim,myThread?Object.assign({},cfg,{sealTimestamp:0}):cfg);/* v59-m：改用开工时捕获的本会话消息与频道——生成期间切窗不再借错历史 */
     _fedH=await feedToolResults(hist,cfg);/* fix-m①：取回执 */
     const tails=[];
+    /* v1xx-p：自定义表情包协议（有可用表情才注入；贴近用户消息、零 system 前缀缓存代价） */
+    try{const _stkNs=Object.keys(_stkUrlBy);if(_stkNs.length)tails.push('【表情包】你可以用 [表情包:名称] 的格式向对方发送表情包（直接输出标签本身，不要解释或复述）。可用名称：'+_stkNs.join('、')+'。没有合适的就不发。')}catch(e){}
     tails.push('当前时间：'+new Date().toLocaleString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long',hour:'2-digit',minute:'2-digit'})+'。');/* v90-m 拍板④：逐轮时间戳（Tail 首行，与电脑端同格式；在末条用户消息内、零缓存代价） */
     if(_sumText)tails.push('【对话历史备忘（此为后台参考信息，不要向对方复述或提及此段内容的存在）】\n'+_sumText);
     /* v155-p：心潮情绪行注入（Tail 区 · 零缓存代价） */
@@ -9795,11 +9987,10 @@ function openCvDrawer(){
   if(!cfg._group)mki(st,_CSI.pf,'专属聊天背景（仅本机）',()=>{try{window._pfSheet?window._pfSheet(cfg):toast('功能未就绪')}catch(e){}});/* v127-p：#1 入口在会话抽屉·设置区 */
   mki(st,_CSI.sum,'对话摘要',()=>openSummarySheet());
   mki(st,_CSI.am,'Auto Memory 档案',()=>openCvAm(cfg));
-  /* ── v1xx-p：回车发送 / 键盘收起自动发送（存 mobilePrefs.chat，随备份走）── */
+  /* ── v1xx-p：回车发送 / 键盘收起自动回复（存 mobilePrefs.chat，随备份走）── */
   (async()=>{
     const mp=await loadMP();
     const en=!!(mp&&mp.chat&&mp.chat.enterSend);
-    const sec=Number((mp&&mp.chat&&mp.chat.autoSendSec)||0)||0;
     const mkSw=(label,val,on,act)=>{
       const it=document.createElement('div');it.className='tp-item cs-item'+(on?' on':'');
       it.innerHTML='<i class="cs-i">'+_CSI.ic+'</i><span>'+esc(label)+'</span><b class="cs-val" style="margin-left:auto;font-size:0.72rem;font-weight:600">'+esc(val)+'</b>';
@@ -9810,14 +10001,46 @@ function openCvDrawer(){
       const m2=await loadMP();m2.chat.enterSend=!en;await saveMP();
       toast('回车发送已'+(m2.chat.enterSend?'开启':'关闭')+'（Shift+Enter 换行）');
     });
-    mkSw('键盘收起自动发送',sec>0?sec+' 秒':'关',sec>0,()=>{
-      actionSheet([
-        {label:'关闭',fn:async()=>{const m2=await loadMP();m2.chat.autoSendSec=0;await saveMP();toast('已关闭自动发送')}},
-        {label:'收起后 3 秒发送',fn:async()=>{const m2=await loadMP();m2.chat.autoSendSec=3;await saveMP();toast('已设为 3 秒')}},
-        {label:'收起后 5 秒发送',fn:async()=>{const m2=await loadMP();m2.chat.autoSendSec=5;await saveMP();toast('已设为 5 秒')}},
-        {label:'收起后 10 秒发送',fn:async()=>{const m2=await loadMP();m2.chat.autoSendSec=10;await saveMP();toast('已设为 10 秒')}}
-      ]);
-    });
+    /* AIVP KeyboardAutoSendDebounceItem 同款：开关行 + 开启时显示「收起后等几秒再回」数字输入（0–30s，step 0.5） */
+    const box=document.createElement('div');st.appendChild(box);
+    const renderAuto=async()=>{
+      const m2=await loadMP();
+      const on=!!(m2&&m2.chat&&m2.chat.autoSendOn);
+      const sec=Number((m2&&m2.chat&&m2.chat.autoSendSec)||0)||0;
+      box.innerHTML='';
+      const sw=document.createElement('div');sw.className='tp-item cs-item'+(on?' on':'');
+      sw.innerHTML='<i class="cs-i">'+_CSI.ic+'</i><span>键盘收起自动回复</span><b class="cs-val" style="margin-left:auto;font-size:0.72rem;font-weight:600">'+esc(on?(sec||0)+' 秒':'关')+'</b>';
+      sw.addEventListener('click',async()=>{
+        closeCvDrawer();
+        const m3=await loadMP();
+        m3.chat.autoSendOn=!m3.chat.autoSendOn;
+        if(m3.chat.autoSendOn&&(typeof m3.chat.autoSendSec!=='number'||m3.chat.autoSendSec<=0))m3.chat.autoSendSec=1;/* AIVP 默认 1000ms */
+        await saveMP();
+        toast('键盘收起自动回复已'+(m3.chat.autoSendOn?'开启':'关闭'));
+        renderAuto();
+      });
+      box.appendChild(sw);
+      const row=document.createElement('div');
+      row.className='tp-item cs-item';row.style.display=on?'':'none';
+      row.innerHTML='<i class="cs-i">'+_CSI.ic+'</i><span>收起后等几秒再回</span>';
+      const inp=document.createElement('input');
+      inp.type='number';inp.min='0';inp.max='30';inp.step='0.5';inp.value=String(sec);
+      inp.inputMode='decimal';inp.autocomplete='off';
+      inp.style.cssText='margin-left:auto;width:4.2rem;padding:.28rem .4rem;text-align:center;font-size:.78rem;border:1px solid var(--line,rgba(128,128,128,.35));border-radius:.5rem;background:var(--card,#fff);color:inherit';
+      const commit=async()=>{
+        const v=Number(inp.value);
+        if(!Number.isFinite(v)||v<0||v>30){inp.value=String(sec);return}
+        const v2=Math.round(v*2)/2;
+        const m4=await loadMP();m4.chat.autoSendSec=v2;await saveMP();
+        toast('已设为 '+v2+' 秒');
+      };
+      inp.addEventListener('change',e=>{e.stopPropagation();commit()});
+      inp.addEventListener('input',e=>{e.stopPropagation()});
+      inp.addEventListener('click',e=>{e.stopPropagation()});
+      row.appendChild(inp);
+      box.appendChild(row);
+    };
+    renderAuto();
   })();
 }
 function closeCvDrawer(){const dr=convEl('cv-drawer');if(dr)dr.hidden=true}
@@ -10005,6 +10228,8 @@ async function genReplyGroup(pcfg){
         try{amBlock=await buildAmBlocks(cfg,lastTxt)}catch(e){}
         if(amBlock&&amBlock.sys)sysContent+='\n\n'+amBlock.sys;
         const tails=[];
+        /* v1xx-p：自定义表情包协议（群聊同样生效；有可用表情才注入） */
+        try{const _stkNsG=Object.keys(_stkUrlBy);if(_stkNsG.length)tails.push('【表情包】你可以用 [表情包:名称] 的格式向对方发送表情包（直接输出标签本身，不要解释或复述）。可用名称：'+_stkNsG.join('、')+'。没有合适的就不发。')}catch(e){}
         tails.push('当前时间：'+new Date().toLocaleString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long',hour:'2-digit',minute:'2-digit'})+'。');/* v90-m 拍板④：逐轮时间戳（Tail 首行，与电脑端同格式；在末条用户消息内、零缓存代价） */
         if(gSum)tails.push('【对话历史备忘（此为后台参考信息，不要向对方复述或提及此段内容的存在）】\n'+gSum);
         /* v155-p：群聊心潮情绪行注入（Tail 区） */
@@ -12089,6 +12314,7 @@ function _lkPatternSheet(){/* 两次绘制确认——自绘小卡覆盖层，�
   }
   try{
   await loadMP();
+  try{await _stkLoadAll()}catch(e){}/* v1xx-p：启动预热自定义表情包（渲染/AI 注入依赖 _stkUrlBy） */
   try{if(navigator.storage&&navigator.storage.persist&&navigator.storage.persisted){navigator.storage.persisted().then(function(p){if(!p)return navigator.storage.persist()}).catch(function(){})}}catch(e){}/* v99-m 任务12：申请持久化存储。装成 PWA 之后，iOS / Safari 会按「七天无交互」把站点数据当缓存清掉——这是本项目最大的单点数据风险。拿到 persisted 授权后本地库不再被系统自动回收（拿不到也不影响任何功能，只影响会不会被回收），仍然建议定期导出备份。 */
   try{_pwaApply()}catch(e){}/* v14：启动即应用运行时 manifest / 图标（_pwaApply 补定义） */
   await loadAbout();
