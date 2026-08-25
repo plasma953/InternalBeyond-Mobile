@@ -4,3 +4,5 @@ http.log
 scan*.py
 scan*.out
 smoke_r*.js
+smoke_v165.js
+check_syntax.js

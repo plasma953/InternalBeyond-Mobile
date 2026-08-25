@@ -576,10 +576,41 @@ body.theme-infernal .cv-stk-cell{background:rgba(24,33,58,0.5)}
 .cv-stk-cell img{max-width:40px;max-height:40px;object-fit:contain;border-radius:6px}
 .cv-stk-cell .cv-stk-nm{font-size:.58rem;color:var(--tx2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.1}
 .chat-sticker img{max-width:5.2em;max-height:5.2em;vertical-align:middle;border-radius:.3em}
-/* v1xx-p：触发回复按钮（AIVP pendingGenerate 模型——发送后不自动回复，按钮/收起键盘触发） */
-.cv-trigger{color:var(--acc,#4a7dff);font-size:1.05rem}
-.cv-trigger.pulse{animation:cvtrig 1.2s ease-in-out infinite}
-@keyframes cvtrig{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+/* v1xx-p：触发回复按钮（AIVP pendingGenerate 模型——发送后不自动回复，按钮/收起键盘触发）
+   v165-p：⚡ 改为 SVG 胶囊条，从输入栏移至聊天区顶部（cv-msgs 上方），脉冲动画作用于横幅 */
+.cv-trigger-wrap{flex:none;display:flex;justify-content:center;margin:6px 10px 0;pointer-events:none;z-index:5}
+.cv-trigger-wrap.pulse{animation:cvtrig 1.2s ease-in-out infinite}
+.cv-trigger{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:999px;background:var(--acc,#4a7dff);color:#fff;font-size:.78rem;font-weight:600;pointer-events:auto;border:none;box-shadow:0 4px 14px rgba(74,125,255,.4);cursor:pointer}
+.cv-trigger svg{width:15px;height:15px;display:block}
+@keyframes cvtrig{0%,100%{transform:translateY(0)}50%{transform:translateY(2px)}}
+/* v165-p：表情包批量导入对话框（对齐 AIVP sticker-manager BatchAddStickerDialog） */
+.stk-batch-mask{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:flex;align-items:flex-end;justify-content:center}
+.stk-batch-dlg{width:min(440px,94vw);max-height:84vh;background:#171c26;color:#e8eaf0;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 40px rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);border-bottom:none}
+body.theme-infernal .stk-batch-dlg{background:#10141f}
+.stk-batch-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;flex:none}
+.stk-batch-tt{font-size:.92rem;font-weight:700}
+.stk-batch-x{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(128,128,128,.18);color:#9aa1af;cursor:pointer;font-size:.85rem}
+.stk-batch-body{overflow-y:auto;padding:0 16px 12px;display:flex;flex-direction:column;gap:10px;flex:1;min-height:0}
+.stk-batch-packs{display:flex;gap:.3rem;overflow-x:auto;padding-bottom:.2rem}
+.stk-batch-pack{flex:0 0 auto;padding:.26rem .6rem;border-radius:.6rem;font-size:.7rem;background:rgba(128,128,128,.16);color:#c6ccd8;border:1px solid transparent;white-space:nowrap;cursor:pointer}
+.stk-batch-pack.on{background:var(--acc,#4a7dff);color:#fff}
+.stk-batch-note{font-size:.68rem;color:#8b93a3;text-align:center}
+.stk-batch-droptile{width:100%;height:88px;border:1.5px dashed rgba(150,160,180,.4);border-radius:14px;background:rgba(128,128,128,.07);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#8b93a3;font-size:.72rem;cursor:pointer}
+.stk-batch-droptile b{font-size:.78rem;color:#c6ccd8;font-weight:600}
+.stk-batch-url-label{font-size:.7rem;color:#8b93a3}
+.stk-batch-url{width:100%;min-height:84px;resize:vertical;border-radius:10px;border:1px solid rgba(150,160,180,.3);background:rgba(128,128,128,.1);color:#e8eaf0;font-size:.75rem;padding:8px 10px;box-sizing:border-box;font-family:inherit;outline:none}
+.stk-batch-url:focus{border-color:var(--acc,#4a7dff)}
+.stk-batch-urlrow{display:flex;align-items:center;gap:10px}
+.stk-batch-urlrow img{width:44px;height:44px;object-fit:contain;border-radius:10px;background:rgba(128,128,128,.12);flex:none;border:1px solid rgba(150,160,180,.15)}
+.stk-batch-name{flex:1;min-width:0;background:rgba(128,128,128,.1);border:1px solid rgba(150,160,180,.3);border-radius:9px;color:#e8eaf0;font-size:.74rem;padding:7px 9px;box-sizing:border-box;outline:none}
+.stk-batch-name.err{border-color:#e2574c}
+.stk-batch-rm{width:26px;height:26px;flex:none;border-radius:50%;background:rgba(226,87,76,.14);color:#e2574c;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.8rem}
+.stk-batch-err{font-size:.66rem;color:#e2574c;padding-left:54px;margin-top:-4px}
+.stk-batch-foot{display:flex;gap:10px;padding:10px 16px 16px;flex:none;border-top:1px solid rgba(150,160,180,.12)}
+.stk-batch-btn{flex:1;padding:10px 0;border-radius:11px;font-size:.8rem;font-weight:600;cursor:pointer;border:none;text-align:center}
+.stk-batch-btn.ghost{background:rgba(128,128,128,.14);color:#c6ccd8}
+.stk-batch-btn.primary{background:var(--acc,#4a7dff);color:#fff}
+.stk-batch-btn.primary:disabled{opacity:.45;cursor:not-allowed}
 #cv-auto-tip{position:absolute;right:12px;bottom:calc(80px + var(--sab));z-index:55;background:rgba(20,30,55,0.82);color:#fff;font-size:0.72rem;padding:5px 12px;border-radius:12px;pointer-events:none}
 body.theme-infernal #cv-auto-tip{background:rgba(10,16,32,0.85)}
 /* v2xx-p：表情包协议渲染——[表情包:名称] 文本标签在渲染层动态解析为 sticker 节点（对齐 AIVP StickerBubble） */
@@ -3404,6 +3435,9 @@ self.addEventListener(&#x27;fetch&#x27;,function(e){
     <div class="cvd-sec"><div class="cvd-lab">设置</div><div id="cvd-set"></div></div>
   </div></div>
   <div id="cv-msgs"></div>
+  <div class="cv-trigger-wrap" id="cv-trigger-bar" hidden>
+    <button class="cv-trigger" id="cv-trigger" aria-label="触发回复"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4.09 12.35a.5.5 0 0 0 .38.83H11l-1.87 6.6c-.11.38.34.66.63.39L19.91 9.9a.5.5 0 0 0-.38-.83H13l1.55-6.5A.4.4 0 0 0 13 2z"/></svg><span>触发回复</span></button>
+  </div>
   <div id="cv-attach-strip"></div>
   <div id="cv-quote-bar"><span class="q-t" id="cv-quote-t"></span><span class="q-x" id="cv-quote-x">✕</span></div>
   <div id="cv-sticker-panel" class="glass" hidden>
@@ -3417,7 +3451,6 @@ self.addEventListener(&#x27;fetch&#x27;,function(e){
     <button class="cv-mini" id="cv-sticker" aria-label="表情包"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 14.2a4.4 4.4 0 0 0 7 0M8.8 9.4h.01M15.2 9.4h.01"/></svg></button>
     <textarea id="cv-ta" rows="1" placeholder="输入消息…"></textarea>
     <button class="cv-mini" id="cv-mic" aria-label="语音消息"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="14" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
-    <button class="cv-mini cv-trigger" id="cv-trigger" hidden aria-label="触发回复">⚡</button>
     <button class="send-btn" id="cv-send"><svg viewBox="0 0 24 24"><path d="M4 12h13M13 6l6 6-6 6"/></svg></button>
   </div>
   <div id="cv-selbar" class="glass">
@@ -5424,9 +5457,13 @@ function actionSheet(items){
 }
 function pressable(el,fn){
   let tmr=null;
-  el.addEventListener('touchstart',()=>{tmr=setTimeout(()=>{tmr=null;fn()},550)},{passive:true});
+  el.addEventListener('touchstart',()=>{tmr=setTimeout(()=>{tmr=null;el.__lpFired=1;setTimeout(()=>{el.__lpFired=0},800);fn()},550)},{passive:true});
   ['touchmove','touchend','touchcancel'].forEach(ev=>el.addEventListener(ev,()=>{if(tmr){clearTimeout(tmr);tmr=null}},{passive:true}));
-  el.addEventListener('contextmenu',e=>{e.preventDefault();fn()});
+  el.addEventListener('contextmenu',e=>{e.preventDefault();el.__lpFired=1;setTimeout(()=>{el.__lpFired=0},800);fn()});
+  /* v165-p：长按触发后吞掉紧随的合成 click，避免「长按管理的同时又点了插入/切包」双触发 */
+  el.addEventListener('click',e=>{
+    if(el.__lpFired){e.stopImmediatePropagation();e.preventDefault();el.__lpFired=0}
+  },true);
 }
 function copyText(t){
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>toast('已复制'),()=>fallbackCopy(t))}
@@ -7591,9 +7628,16 @@ function _stkCompress(blob){
 /* 链接批量导入（AIVP BatchAddStickerDialog 同款解析：每行「名称: URL」或纯 URL；
    名称留空用链接文件名；http/https 校验；重名自动加 (2) 后缀） */
 const _STK_URL_RE=/https?:\/\/[^\s，。；;]+/i;
-async function _stkImportUrls(text){
-  if(!_stkCurPack){toast('先点「＋新建」创建表情包');return}
-  const pack=_stkPacks.find(p=>p.id===_stkCurPack);if(!pack)return;
+/* v165-p：获取目标包——当前选中包 → 第一个包 → 自动新建「默认表情包」（免「＋新建」流程，对齐 AIVP 批量对话框语义） */
+async function _stkEnsurePack(){
+  if(_stkCurPack){const c=_stkPacks.find(p=>p.id===_stkCurPack);if(c)return c}
+  if(_stkPacks.length){_stkCurPack=_stkPacks[0].id;return _stkPacks[0]}
+  const pack={id:_stkNewId('pack'),name:'默认表情包',stickers:[],createdAt:new Date().toISOString()};
+  _stkPacks.push(pack);await _stkSave(pack);_stkCurPack=pack.id;return pack;
+}
+async function _stkImportUrls(text,packId){
+  const pack=packId?_stkPacks.find(p=>p.id===packId):await _stkEnsurePack();
+  if(!pack)return;
   const used=new Set((pack.stickers||[]).map(s=>s.name));
   let ok=0;
   (text||'').split(/\r?\n/).forEach((line,idx)=>{
@@ -7615,10 +7659,10 @@ async function _stkImportUrls(text){
   _stkPanelBuild();
   toast('已导入 '+ok+' 张（链接）');
 }
-/* 批量导入到当前包：名=文件名去扩展名，重名自动加 (2) 后缀 */
-async function _stkImport(files){
-  if(!_stkCurPack){toast('先点「＋新建」创建表情包');return}
-  const pack=_stkPacks.find(p=>p.id===_stkCurPack);if(!pack)return;
+/* 批量导入到目标包：名=文件名去扩展名，重名自动加 (2) 后缀 */
+async function _stkImport(files,packId){
+  const pack=packId?_stkPacks.find(p=>p.id===packId):await _stkEnsurePack();
+  if(!pack)return;
   const used=new Set((pack.stickers||[]).map(s=>s.name));
   let ok=0;
   for(const f of files){
@@ -7638,6 +7682,195 @@ async function _stkImport(files){
 }
 /* AIVP 同款正则：C="\\s*[：:]\\s*"（半角/全角冒号 + 允许周围空格） */
 const _STK_TAG_RE=/\[表情包\s*[：:]\s*([^\]]+)\]/g;
+/* ══ v165-p：表情包「批量导入」对话框（对齐 AIVP sticker-manager BatchAddStickerDialog）
+   —— 免新建包：无包时自动建「默认表情包」；支持「名称: URL / 名称 URL」批量解析、
+      多图选择、行内改名、本批与已有双程查重、预览、进度提交 ══ */
+const _STK_BATCH_URL_RE=/https?:\/\/[^\s，。；;]+/i;
+function _stkBatchBaseName(filename){return String(filename||'').replace(/\.[^.]+$/,'').trim()||'表情'}
+function _stkBatchNameFromUrl(url,index){
+  try{const p=new URL(url).pathname;return _stkBatchBaseName(decodeURIComponent(p.split('/').filter(Boolean).pop()||''))||('表情'+(index+1))}
+  catch(e){return '表情'+(index+1)}
+}
+function _stkBatchParse(text){
+  return String(text||'').split(/\r?\n/).map((line,index)=>{
+    const t=line.trim();if(!t)return null;
+    const m=t.match(_STK_BATCH_URL_RE);
+    if(!m||m.index===undefined)return null;
+    let url=m[0].trim().replace(/[，。；;]+$/g,'');
+    try{const u=new URL(url);if(u.protocol!=='http:'&&u.protocol!=='https:')return null;url=u.toString()}catch(e){return null}
+    const label=t.slice(0,m.index).trim().replace(/[:：\s]+$/g,'');
+    return{name:(label||_stkBatchNameFromUrl(url,index)).slice(0,30),url};
+  }).filter(Boolean);
+}
+let _stkBatchRows=[],_stkBatchPackId=null,_stkBatchUrls=[];
+function _stkBatchOpen(){
+  _stkBatchRows=[];_stkBatchUrls=[];_stkBatchPackId=null;
+  const dlg=document.getElementById('stk-batch-dlg');if(!dlg){toast('批量对话框初始化失败');return}
+  dlg.hidden=false;
+  _stkLoadAll().then(()=>_stkBatchRedraw());
+}
+function _stkBatchClose(){
+  const dlg=document.getElementById('stk-batch-dlg');if(dlg)dlg.hidden=true;
+  _stkBatchRows=[];_stkBatchUrls.forEach(u=>{try{URL.revokeObjectURL(u)}catch(e){}});_stkBatchUrls=[];
+}
+function _stkBatchTargetPack(){
+  if(_stkBatchPackId){const p=_stkPacks.find(x=>x.id===_stkBatchPackId);if(p)return p}
+  _stkBatchPackId=_stkCurPack||null;
+  const p=_stkPacks.find(x=>x.id===_stkBatchPackId);
+  if(p)return p;
+  /* 无包：对话框内直接占位「默认表情包」，提交时创建 */
+  return{id:'__auto',name:'默认表情包',stickers:[],createdAt:new Date().toISOString(),auto:true};
+}
+function _stkBatchRowErr(r,existingSet){
+  const t=(r.name||'').trim();
+  if(!t)return'名称不能为空';
+  const k=t.toLowerCase();
+  if(existingSet.has(k))return'与已有表情重名';
+  let c=0;_stkBatchRows.forEach(x=>{if((x.name||'').trim().toLowerCase()===k)c++});
+  if(c>1)return'本批重名';
+  return null;
+}
+function _stkBatchAddUrls(){
+  const ta=document.getElementById('stk-batch-url');if(!ta)return;
+  const parsed=_stkBatchParse(ta.value);
+  if(!parsed.length){toast('没有识别到可用的图片 URL');ta.focus();return}
+  ta.value='';
+  const pack=_stkBatchTargetPack();
+  const existing=new Set((pack.stickers||[]).map(s=>(s.name||'').trim().toLowerCase()));
+  parsed.forEach((row)=>{_stkBatchRows.push({id:_stkNewId('stk'),src:'url',url:row.url,name:row.name,_err:null})});
+  _stkBatchRows.forEach(r=>{r._err=_stkBatchRowErr(r,existing)});
+  _stkBatchRedraw();
+}
+function _stkBatchAddFiles(files){
+  if(!files||!files.length)return;
+  const pack=_stkBatchTargetPack();
+  const existing=new Set((pack.stickers||[]).map(s=>(s.name||'').trim().toLowerCase()));
+  Array.from(files).filter(f=>f.type&&f.type.indexOf('image/')===0).forEach((f,i)=>{
+    if(f.size>8*1024*1024){toast((f.name||'')+'超过 8MB，跳过');return}
+    const u=URL.createObjectURL(f);_stkBatchUrls.push(u);
+    _stkBatchRows.push({id:_stkNewId('stk'),src:'file',file:f,url:u,name:_stkBatchBaseName(f.name)||('表情'+(i+1)),_err:null});
+  });
+  _stkBatchRows.forEach(r=>{r._err=_stkBatchRowErr(r,existing)});
+  _stkBatchRedraw();
+}
+function _stkBatchRedraw(){
+  const dlg=document.getElementById('stk-batch-dlg');if(!dlg||dlg.hidden)return;
+  /* 标题计数 */
+  const tt=document.getElementById('stk-batch-tt');if(tt)tt.textContent='批量添加表情'+( _stkBatchRows.length?' · '+_stkBatchRows.length:'');
+  /* 目标包选择 */
+  const packs=document.getElementById('stk-batch-packs');if(packs){
+    if(!_stkBatchPackId||!_stkPacks.some(p=>p.id===_stkBatchPackId))_stkBatchPackId=_stkCurPack||null;
+    packs.innerHTML='';
+    (_stkPacks.length?_stkPacks:[]).forEach(p=>{
+      const tb=document.createElement('div');
+      tb.className='stk-batch-pack'+(p.id===_stkBatchPackId?' on':'');
+      tb.textContent=p.name;
+      tb.addEventListener('click',()=>{_stkBatchPackId=p.id;const ex=new Set((p.stickers||[]).map(s=>(s.name||'').trim().toLowerCase()));_stkBatchRows.forEach(r=>{r._err=_stkBatchRowErr(r,ex)});_stkBatchRedraw()});
+      packs.appendChild(tb);
+    });
+    if(!_stkPacks.length){
+      const tb=document.createElement('div');tb.className='stk-batch-pack on';tb.textContent='默认表情包（自动创建）';
+      packs.appendChild(tb);
+    }
+  }
+  /* 行列表 */
+  const list=document.getElementById('stk-batch-rows');if(list){
+    list.innerHTML='';
+    const pack=_stkBatchTargetPack();
+    const existing=new Set((pack.stickers||[]).map(s=>(s.name||'').trim().toLowerCase()));
+    _stkBatchRows.forEach(r=>{r._err=_stkBatchRowErr(r,existing)});
+    let ready=0;
+    _stkBatchRows.forEach((r,idx)=>{
+      if(!r._err)ready++;
+      const row=document.createElement('div');
+      const line=document.createElement('div');line.className='stk-batch-urlrow';
+      const im=document.createElement('img');im.src=r.url;im.alt='';im.loading='lazy';
+      const inp=document.createElement('input');inp.className='stk-batch-name'+(r._err?' err':'');inp.value=r.name;inp.placeholder='表情名称';inp.autocomplete='off';
+      inp.addEventListener('input',()=>{
+        r.name=inp.value;_stkBatchRows.forEach(x=>{x._err=_stkBatchRowErr(x,existing)});
+        inp.className='stk-batch-name'+(r._err?' err':'');
+        const e=row.querySelector('.stk-batch-err');if(e)e.textContent=r._err||(r.src==='url'?'URL图片':'本地图片');
+        _stkBatchFootRefresh();
+      });
+      const rm=document.createElement('div');rm.className='stk-batch-rm';rm.textContent='✕';
+      rm.addEventListener('click',()=>{_stkBatchRows.splice(idx,1);_stkBatchRedraw()});
+      line.appendChild(im);line.appendChild(inp);line.appendChild(rm);
+      row.appendChild(line);
+      const err=document.createElement('div');err.className='stk-batch-err';
+      err.textContent=r._err||(r.src==='url'?'URL图片':'本地图片');
+      row.appendChild(err);
+      list.appendChild(row);
+    });
+    _stkBatchFootRefresh();
+  }
+}
+function _stkBatchFootRefresh(){
+  const btn=document.getElementById('stk-batch-go');if(!btn)return;
+  const ready=_stkBatchRows.filter(r=>!r._err).length;
+  btn.textContent=_stkBatchRows.length?('全部添加 ('+ready+'/'+_stkBatchRows.length+')'):'全部添加';
+  btn.disabled=!_stkBatchRows.length||ready!==_stkBatchRows.length;
+}
+async function _stkBatchSubmit(){
+  const pack0=_stkBatchTargetPack();
+  let pack;
+  if(pack0&&pack0.auto){pack=_stkPacks.find(p=>p.name==='默认表情包');if(!pack){pack={id:_stkNewId('pack'),name:'默认表情包',stickers:[],createdAt:new Date().toISOString()};_stkPacks.push(pack);await _stkSave(pack)}_stkCurPack=pack.id}
+  else{pack=_stkPacks.find(p=>p.id===_stkBatchPackId)||await _stkEnsurePack()}
+  const rows=_stkBatchRows.filter(r=>!r._err);
+  if(!rows.length)return;
+  const btn=document.getElementById('stk-batch-go');if(btn)btn.disabled=true;
+  let ok=0;
+  for(const r of rows){
+    if(r.src==='file'){
+      if(!r.file)continue;
+      const dataUrl=await _stkCompress(r.file);
+      if(!dataUrl){toast((r.name||'')+'读取失败，跳过');continue}
+      pack.stickers.push({id:_stkNewId('stk'),name:r.name.trim(),dataUrl});
+    }else{
+      pack.stickers.push({id:_stkNewId('stk'),name:r.name.trim(),externalUrl:r.url});
+    }
+    ok++;
+  }
+  await _stkSave(pack);await _stkLoadAll();
+  _stkBatchClose();_stkPanelBuild();
+  toast('已批量添加 '+ok+' 张 →「'+pack.name+'」');
+}
+/* 对话框 DOM 悬挂（仅一次） */
+(function(){
+  const src=document.getElementById('cv-sticker-panel');if(!src)return;
+  const dlg=document.createElement('div');
+  dlg.className='stk-batch-mask';dlg.id='stk-batch-dlg';dlg.hidden=true;
+  dlg.innerHTML=
+    '<div class="stk-batch-dlg">'+
+      '<div class="stk-batch-head"><div class="stk-batch-tt" id="stk-batch-tt">批量添加表情</div><div class="stk-batch-x" id="stk-batch-x">✕</div></div>'+
+      '<div class="stk-batch-body">'+
+        '<div class="stk-batch-packs" id="stk-batch-packs"></div>'+
+        '<div class="stk-batch-droptile" id="stk-batch-pick">'+
+          '<b>＋ 选择多张图片</b><span>或在下方粘贴 URL 列表</span>'+
+        '</div>'+
+        '<div class="stk-batch-url-label">批量 URL（每行一个，支持「名称: URL」或「名称 URL」）</div>'+
+        '<textarea class="stk-batch-url" id="stk-batch-url" placeholder="贴贴：https://example.com/a.jpg&#10;可爱 https://example.com/b.gif" rows="4"></textarea>'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">'+
+          '<span style="font-size:.66rem;color:#8b93a3">名称留空则用链接文件名，自动查重</span>'+
+          '<button class="stk-batch-btn" id="stk-batch-addurl" style="flex:none;padding:8px 16px;background:rgba(128,128,128,.16);color:#c6ccd8">解析并添加</button>'+
+        '</div>'+
+        '<div id="stk-batch-rows" style="display:flex;flex-direction:column;gap:8px"></div>'+
+      '</div>'+
+      '<div class="stk-batch-foot">'+
+        '<button class="stk-batch-btn ghost" id="stk-batch-cancel">取消</button>'+
+        '<button class="stk-batch-btn primary" id="stk-batch-go" disabled>全部添加</button>'+
+      '</div>'+
+    '</div>';
+  src.parentNode.appendChild(dlg);
+  const fi=document.createElement('input');fi.type='file';fi.accept='image/*';fi.multiple=true;fi.style.display='none';fi.id='stk-batch-file';
+  dlg.appendChild(fi);
+  document.getElementById('stk-batch-x').addEventListener('click',_stkBatchClose);
+  document.getElementById('stk-batch-cancel').addEventListener('click',_stkBatchClose);
+  document.getElementById('stk-batch-addurl').addEventListener('click',_stkBatchAddUrls);
+  document.getElementById('stk-batch-go').addEventListener('click',_stkBatchSubmit);
+  document.getElementById('stk-batch-pick').addEventListener('click',()=>{fi.click()});
+  fi.addEventListener('change',e=>{const fs=Array.from(e.target.files||[]);e.target.value='';if(fs.length)_stkBatchAddFiles(fs)});
+  dlg.addEventListener('click',e=>{if(e.target===dlg)_stkBatchClose()});
+})();
 function _stkInsertTag(em){
   const tag='[表情包:'+em+']';
   const v=ta.value;
@@ -7685,11 +7918,8 @@ async function _stkPanelBuild(){
   const imp=document.createElement('div');imp.className='cv-stk-btn';imp.textContent='⇪ 图片';
   imp.addEventListener('click',()=>{const fi=document.getElementById('cv-stk-file');if(fi)fi.click()});
   ops.appendChild(imp);
-  const impu=document.createElement('div');impu.className='cv-stk-btn';impu.textContent='⇪ 链接批量导入';
-  impu.addEventListener('click',()=>{
-    const txt=prompt('每行一条图片URL（可写「名称: URL」，名称留空则用链接文件名）');
-    if(txt)_stkImportUrls(txt);
-  });
+  const impu=document.createElement('div');impu.className='cv-stk-btn';impu.textContent='▤ 批量导入';
+  impu.addEventListener('click',()=>{_stkBatchOpen()});
   ops.appendChild(impu);
   const del=document.createElement('div');del.className='cv-stk-btn danger';del.textContent='删除当前包';
   del.addEventListener('click',()=>{
@@ -7783,8 +8013,8 @@ function _hasUnrepliedUserMsg(){
 let _pendingGen=false;
 function _pendGenSet(v){
   _pendingGen=!!v;
-  const b=document.getElementById('cv-trigger');
-  if(b){b.hidden=!_pendingGen;b.classList.toggle('pulse',_pendingGen)}
+  const bar=document.getElementById('cv-trigger-bar');
+  if(bar){bar.hidden=!_pendingGen;bar.classList.toggle('pulse',_pendingGen)}
 }
 function _pendGenInit(){/* 切换会话后按现场重建（AIVP pending 按会话记忆） */
   try{
@@ -8346,6 +8576,7 @@ function _stPaintNow(el,raw){
     else{out+='<span class="st-chip busy"><i></i>'+esc(_stLabel(tag,m[2],true))+'</span>';rest='';break}
   }
   el.innerHTML=out;
+  if(out.indexOf('表情包')>=0){try{_stkScanNodes(el)}catch(e){}}/* v165-p：流式渲染期同样拦截 [表情包:名称] → 贴纸（此前仅收尾渲染被拦截，直播时标签裸奔） */
 }
 function _stPaint(el,raw){/* 与电脑版同思路：高频 SSE 只保留最新全文，每帧最多重排一次，避免完整 Markdown 每个 token 都同步重绘 */
   el._ibStRaw=String(raw||'');
@@ -12339,7 +12570,7 @@ function _orientApply(){try{
   el=$('ui-bigtouch');if(el)el.addEventListener('click',async function(){var el9=this;try{await loadMP();_mp.ui=_mp.ui||{};_mp.ui.bigTouch=!_mp.ui.bigTouch;sw2(el9,!!_mp.ui.bigTouch);await saveMP();_uiApply();toast(_mp.ui.bigTouch?'触控目标已放大':'触控目标恢复标准')}catch(e){toast('设置保存失败，请重试');try{await loadMP();sw2(el9,!!(_mp.ui&&_mp.ui.bigTouch))}catch(e2){}}});
   setTimeout(function(){try{if(window.IBNative&&window.IBNative.available){var _bg=$('pres-bg');var _row=_bg&&_bg.closest('.tog');if(_row)_row.style.display=''}}catch(e){}},1200);/* v116-p：壳内显露「后台 Presence（App）」开关（桥在文末激活，故延时探测；浏览器 / PWA 保持隐藏） */
 })();
-var IB_VER='v161-p',IB_VER_DATE='2026-08-24';/* v86-m r3：版本号占位——展示于 PWA 卡、写入导出档与运行时 manifest */
+var IB_VER='v165-p',IB_VER_DATE='2026-08-25';/* v86-m r3：版本号占位——展示于 PWA 卡、写入导出档与运行时 manifest */
 (function _appVerDraw(){var e=document.getElementById('app-ver');if(e)e.textContent='InternalBeyond Mobile '+IB_VER+'（'+IB_VER_DATE+'）'})();
 function _lkVeilOff(){try{var v=document.getElementById('lk-preveil');if(v){v.classList.add('off');setTimeout(function(){try{v.remove()}catch(e){}},420)}}catch(e){}}/* fix-r4：预遮罩揭幕（任务 8） */
 async function _lkBoot(){try{await loadBgs()}catch(e){}var lk=_lkCfg();try{localStorage.setItem('ib_lockOn',lk&&lk.on?'1':'0')}catch(e){}/* v101-m：启动后把 DB 真值回写同步镜像 */if(lk&&lk.on)_lkShow();else _lkVeilOff()}
