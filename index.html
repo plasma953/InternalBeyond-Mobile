@@ -555,6 +555,20 @@ body.theme-infernal .cv-mini{background:rgba(24,33,58,0.55)}
 @keyframes recPulse{50%{box-shadow:0 0 0 7px rgba(192,85,85,0.16)}}
 #cv-attach-strip{display:none;gap:8px;padding:0 14px 8px;overflow-x:auto}
 #cv-attach-strip.show{display:flex}
+/* ── v1xx-p：表情包面板 / 键盘收起自动发送提示 ── */
+#cv-sticker-panel{position:absolute;left:10px;right:10px;bottom:calc(88px + var(--sab));z-index:60;border-radius:18px;padding:10px;box-shadow:0 8px 30px rgba(0,0,0,0.18);max-height:300px;display:flex;flex-direction:column}
+#cv-sticker-panel[hidden]{display:none}
+.cv-emoji-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cv-emoji-title{font-size:0.8rem;font-weight:600;color:var(--tx2)}
+.cv-emoji-x{cursor:pointer;color:var(--tx2);padding:2px 8px;font-size:0.9rem}
+.cv-stk-grid{overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:8px;padding:4px}
+.cv-stk-cell{height:56px;display:flex;align-items:center;justify-content:center;font-size:2rem;cursor:pointer;border-radius:12px;border:1px solid var(--glass-line);background:rgba(255,255,255,0.5);user-select:none}
+body.theme-infernal .cv-stk-cell{background:rgba(24,33,58,0.5)}
+.cv-stk-cell:active{border-color:var(--acc);transform:scale(0.94)}
+#cv-auto-tip{position:absolute;right:12px;bottom:calc(80px + var(--sab));z-index:55;background:rgba(20,30,55,0.82);color:#fff;font-size:0.72rem;padding:5px 12px;border-radius:12px;pointer-events:none}
+body.theme-infernal #cv-auto-tip{background:rgba(10,16,32,0.85)}
+.cs-item.on{color:var(--acc)}
+.cs-item.on .cs-val{color:var(--acc)}
 .att-thumb{width:58px;height:58px;flex:none;border-radius:12px;border:1px solid var(--glass-line);background:var(--soft) center/cover no-repeat;position:relative}
 .att-x{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:rgba(20,30,55,0.7);color:#fff;font-size:0.66rem;display:flex;align-items:center;justify-content:center;cursor:pointer}
 
@@ -3375,8 +3389,14 @@ self.addEventListener(&#x27;fetch&#x27;,function(e){
   <div id="cv-msgs"></div>
   <div id="cv-attach-strip"></div>
   <div id="cv-quote-bar"><span class="q-t" id="cv-quote-t"></span><span class="q-x" id="cv-quote-x">✕</span></div>
+  <div id="cv-sticker-panel" class="glass" hidden>
+    <div class="cv-emoji-head"><span class="cv-emoji-title">表情包</span><span class="cv-emoji-x" id="cv-sticker-x">✕</span></div>
+    <div class="cv-stk-grid" id="cv-stk-grid"></div>
+  </div>
+  <div id="cv-auto-tip" hidden></div>
   <div class="cv-input glass">
     <button class="cv-mini" id="cv-plus" aria-label="附件"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button class="cv-mini" id="cv-sticker" aria-label="表情包"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 14.2a4.4 4.4 0 0 0 7 0M8.8 9.4h.01M15.2 9.4h.01"/></svg></button>
     <textarea id="cv-ta" rows="1" placeholder="输入消息…"></textarea>
     <button class="cv-mini" id="cv-mic" aria-label="语音消息"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
     <button class="send-btn" id="cv-send"><svg viewBox="0 0 24 24"><path d="M4 12h13M13 6l6 6-6 6"/></svg></button>
@@ -4007,7 +4027,7 @@ const AM_PRIOS=['always','normal','low'];
    电脑版保存 API 配置时按白名单重建整条记录，手机若把私有字段直接写在 apiConfigs 上，
    电脑那边一保存就会被抹掉——所以手机专属的"每 AI 上下文参数 / 聊天显示 / MCP"全部落在
    apiSettings 里 id='mobilePrefs' 的独立记录：电脑版不认识这个 id，不读也不写，但导入导出能原样往返。 */
-const MP_DEF={id:'mobilePrefs',perAi:{},chat:{mdMode:'full',bubbleSplit:false},mcp:{enabled:false,confirm:true,servers:[]},bt:{aiTools:false},profile:{},lock:{on:true}};/* v101-m：新装/无锁屏字段时默认开启上滑锁屏 */
+const MP_DEF={id:'mobilePrefs',perAi:{},chat:{mdMode:'full',bubbleSplit:false,enterSend:false,autoSendSec:0},mcp:{enabled:false,confirm:true,servers:[]},bt:{aiTools:false},profile:{},lock:{on:true}};/* v101-m：新装/无锁屏字段时默认开启上滑锁屏 */
 let _mp=null,_mpFromDb=false;
 try{document.addEventListener('visibilitychange',function(){if(!document.hidden)_mpFromDb=false});window.addEventListener('focus',function(){_mpFromDb=false})}catch(e){}/* v84-m r11：回前台失效缓存（审查 P1-6） */
 /* v66-m 核心修复：原实现读库失败也把默认值落进 _mp 缓存（DB 未就绪时必失败），
@@ -4017,7 +4037,10 @@ try{document.addEventListener('visibilitychange',function(){if(!document.hidden)
    下次调用重读；saveMP 在从未成功读库时先补读并以库为底合并，防止默认值覆写。 */
 function _mpNorm(m){
   if(!m.perAi)m.perAi={};
-  if(!m.chat)m.chat={mdMode:'full',bubbleSplit:false};
+  if(!m.chat)m.chat={mdMode:'full',bubbleSplit:false,enterSend:false,autoSendSec:0};
+  else{/* v1xx-p：回车发送/键盘收起自动发送 字段兜底 */
+    if(typeof m.chat.enterSend!=='boolean')m.chat.enterSend=false;
+    if(typeof m.chat.autoSendSec!=='number'||m.chat.autoSendSec<0)m.chat.autoSendSec=0;}
   if(!m.bt)m.bt={aiTools:false};if(!Array.isArray(m.bt.manuals))m.bt.manuals=[];/* v139-a·v137-p 任务2 */
   if(!m.mcp)m.mcp={enabled:false,confirm:true,servers:[]};
   if(!Array.isArray(m.mcp.servers))m.mcp.servers=[];
@@ -7464,6 +7487,103 @@ document.getElementById('cv-plus').addEventListener('click',()=>{
     {label:'发送文件（文本类）',fn:()=>{if(_pendFiles.length>=4){toast('一次最多 4 个文件');return}document.getElementById('chat-doc-file').click()}}
   ]);
 });
+/* ═══════════ v1xx-p：表情包 / 回车发送 / 键盘收起自动发送 ═══════════ */
+/* ── 表情包（贴纸）：canvas 把大号 emoji 渲染成 PNG dataURL，走 _pendImgs 图片链路，
+     与真实附图同构：drawAttach 预览 → sendMsg 时进 um.images → buildMsgEl 渲染 ── */
+const _STICKER_LIST=['😀','😂','😍','😭','👍','❤️','🔥','🎉','😎','🤔','😡','🥳','🐶','🍕','⚽','🌙'];
+function _stkPng(emoji,size){
+  try{
+    const c=document.createElement('canvas');c.width=c.height=size;
+    const ctx=c.getContext('2d');
+    ctx.font=Math.floor(size*0.78)+'px sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(emoji,size/2,size/2+size*0.04);
+    return c.toDataURL('image/png');
+  }catch(e){return null}
+}
+function _stkPanelBuild(){
+  const grid=document.getElementById('cv-stk-grid');if(!grid)return;
+  grid.innerHTML='';
+  _STICKER_LIST.forEach(em=>{
+    const cell=document.createElement('div');cell.className='cv-stk-cell';cell.textContent=em;
+    cell.addEventListener('click',()=>{
+      if(_pendImgs.length>=4){toast('一次最多 4 张');return}
+      const u=_stkPng(em,160);
+      if(!u){toast('表情包生成失败');return}
+      _pendImgs.push(u);drawAttach();
+      document.getElementById('cv-sticker-panel').hidden=true;
+      toast('表情包已加入，点发送');
+    });
+    grid.appendChild(cell);
+  });
+}
+function _stkPanelToggle(){
+  const p=document.getElementById('cv-sticker-panel');if(!p)return;
+  if(p.hidden){_stkPanelBuild();p.hidden=false}else p.hidden=true;
+}
+document.getElementById('cv-sticker').addEventListener('click',e=>{e.stopPropagation();_stkPanelToggle()});
+document.getElementById('cv-sticker-x').addEventListener('click',()=>{document.getElementById('cv-sticker-panel').hidden=true});
+document.addEventListener('click',e=>{
+  const p=document.getElementById('cv-sticker-panel');if(!p||p.hidden)return;
+  if(e.target.closest('#cv-sticker-panel')||e.target.closest('#cv-sticker'))return;
+  p.hidden=true;
+});
+/* ── 回车发送：Enter 发送、Shift+Enter 换行（开关 mobilePrefs.chat.enterSend）── */
+ta.addEventListener('keydown',async e=>{
+  if(e.key!=='Enter'||e.shiftKey||e.isComposing)return;
+  try{
+    const mp=await loadMP();
+    if(mp&&mp.chat&&mp.chat.enterSend){e.preventDefault();sendMsg()}
+  }catch(err){}
+});
+/* ── 键盘收起 X 秒自动发送：visualViewport 高度正向偏移 >80px 判定收起，
+     收起后按 mobilePrefs.chat.autoSendSec 倒计时；打字/发送中/已清空则取消 ── */
+let _vvLastH=0,_vvKeyUp=false,_autoSendT=null,_autoTickT=null;
+function _autoSendCancel(){
+  if(_autoSendT){clearTimeout(_autoSendT);_autoSendT=null}
+  if(_autoTickT){clearTimeout(_autoTickT);_autoTickT=null}
+  const tip=document.getElementById('cv-auto-tip');if(tip)tip.hidden=true;
+}
+async function _autoSendPlan(){
+  try{
+    const mp=await loadMP();
+    const sec=(mp&&mp.chat&&mp.chat.autoSendSec)||0;
+    if(sec<=0)return;
+    if(!(ta.value.trim()||_pendImgs.length||_pendFiles.length))return;
+    if(_sendKeys.has(_convKey(_activeCfg)))return;
+    let left=sec;
+    const tip=document.getElementById('cv-auto-tip');
+    const show=()=>{if(tip){tip.hidden=false;tip.textContent='键盘收起 '+left+' 秒后自动发送'}};
+    show();
+    const tick=()=>{
+      if(!(ta.value.trim()||_pendImgs.length||_pendFiles.length)){_autoSendCancel();return}
+      if(_sendKeys.has(_convKey(_activeCfg))){_autoSendCancel();return}
+      left--;
+      if(left<=0){
+        if(tip)tip.hidden=true;
+        if(ta.value.trim()||_pendImgs.length||_pendFiles.length)sendMsg();
+        _autoSendCancel();
+        return;
+      }
+      show();
+      _autoTickT=setTimeout(tick,1000);
+    };
+    _autoTickT=setTimeout(tick,1000);
+  }catch(e){}
+}
+(function(){
+  const vv=window.visualViewport;
+  if(!vv)return;
+  _vvLastH=vv.height;
+  vv.addEventListener('resize',()=>{
+    const h=vv.height,delta=h-_vvLastH;
+    if(delta>80&&_vvKeyUp){_vvKeyUp=false;_autoSendCancel();_autoSendPlan()}
+    else if(delta<-80){_vvKeyUp=true;_autoSendCancel()}
+    _vvLastH=h;
+  });
+})();
+/* 再次输入即取消自动发送（键盘重新弹出或继续打字都不误发） */
+ta.addEventListener('input',()=>{_autoSendCancel()});
 document.getElementById('chat-doc-file').addEventListener('change',async e=>{
   const files=Array.from(e.target.files||[]).slice(0,4);
   e.target.value='';
@@ -9675,6 +9795,30 @@ function openCvDrawer(){
   if(!cfg._group)mki(st,_CSI.pf,'专属聊天背景（仅本机）',()=>{try{window._pfSheet?window._pfSheet(cfg):toast('功能未就绪')}catch(e){}});/* v127-p：#1 入口在会话抽屉·设置区 */
   mki(st,_CSI.sum,'对话摘要',()=>openSummarySheet());
   mki(st,_CSI.am,'Auto Memory 档案',()=>openCvAm(cfg));
+  /* ── v1xx-p：回车发送 / 键盘收起自动发送（存 mobilePrefs.chat，随备份走）── */
+  (async()=>{
+    const mp=await loadMP();
+    const en=!!(mp&&mp.chat&&mp.chat.enterSend);
+    const sec=Number((mp&&mp.chat&&mp.chat.autoSendSec)||0)||0;
+    const mkSw=(label,val,on,act)=>{
+      const it=document.createElement('div');it.className='tp-item cs-item'+(on?' on':'');
+      it.innerHTML='<i class="cs-i">'+_CSI.ic+'</i><span>'+esc(label)+'</span><b class="cs-val" style="margin-left:auto;font-size:0.72rem;font-weight:600">'+esc(val)+'</b>';
+      it.addEventListener('click',()=>{closeCvDrawer();act()});
+      st.appendChild(it);
+    };
+    mkSw('回车发送',en?'开':'关',en,async()=>{
+      const m2=await loadMP();m2.chat.enterSend=!en;await saveMP();
+      toast('回车发送已'+(m2.chat.enterSend?'开启':'关闭')+'（Shift+Enter 换行）');
+    });
+    mkSw('键盘收起自动发送',sec>0?sec+' 秒':'关',sec>0,()=>{
+      actionSheet([
+        {label:'关闭',fn:async()=>{const m2=await loadMP();m2.chat.autoSendSec=0;await saveMP();toast('已关闭自动发送')}},
+        {label:'收起后 3 秒发送',fn:async()=>{const m2=await loadMP();m2.chat.autoSendSec=3;await saveMP();toast('已设为 3 秒')}},
+        {label:'收起后 5 秒发送',fn:async()=>{const m2=await loadMP();m2.chat.autoSendSec=5;await saveMP();toast('已设为 5 秒')}},
+        {label:'收起后 10 秒发送',fn:async()=>{const m2=await loadMP();m2.chat.autoSendSec=10;await saveMP();toast('已设为 10 秒')}}
+      ]);
+    });
+  })();
 }
 function closeCvDrawer(){const dr=convEl('cv-drawer');if(dr)dr.hidden=true}
 document.addEventListener('click',e=>{const t=e.target;if(t&&t.classList&&t.classList.contains('cvd-mask'))closeCvDrawer()});
