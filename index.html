@@ -3069,7 +3069,15 @@ self.addEventListener(&#x27;fetch&#x27;,function(e){
         <div class="f-group"><label>压缩 API Key</label><input id="xcm-cmp-key" type="password" placeholder="sk-…" autocomplete="off"></div>
         <div class="f-group"><label>压缩模型</label><input id="xcm-cmp-model" placeholder="deepseek-ai/DeepSeek-V3"></div>
         <div class="f-group"><label>压缩阈值（字）<span class="lb-note">（默认 1200，最小 200）</span></label><input id="xcm-cmp-th" type="number" min="200" step="50" placeholder="1200"></div>
-        <p class="hint" id="xcm-test-out" style="margin:10px 0 0">配套可视化前端：xinchaomind.uk（同一账号无需重复配置）。</p>
+                <div style="height:12px"></div>
+        <div class="tog"><div class="tog-m"><div class="tog-t">心潮念接管记忆</div><div class="tog-s">开启后：记忆写入/检索自动走心潮念 Ombre Brain（网关中继），每次聊天结束自动结算情绪；记忆视界展示 OB 全量目录。</div></div><div class="sw2" id="xcm-ob-on"></div></div>
+        <div class="f-group"><label>心潮网关地址</label><input id="xcm-ob-mcp" placeholder="https://mcp.43451695.xyz/mcp"></div>
+        <div class="f-group"><label>网关 Token <span class="lb-note">（Bearer，服务端 SERVICE_TOKEN）</span></label><input id="xcm-ob-token" type="password" placeholder="…" autocomplete="off"></div>
+        <div class="f-group"><label>OB 中转地址<span class="lb-note">（CORS 中转，u= 结尾）</span></label><input id="xcm-ob-api" placeholder="https://43451695.xyz/cors/?k=…&u="></div>
+        <div class="f-group"><label>OB 访问密码<span class="lb-note">（DASHBOARD_PASSWORD）</span></label><input id="xcm-ob-pwd" type="password" placeholder="…" autocomplete="off"></div>
+        <div style="display:flex;gap:8px;margin-top:8px"><button class="btn" id="xcm-ob-sync" type="button" style="flex:1">保存并同步 OB 配置</button><button class="btn" id="xcm-ob-migrate" type="button" style="flex:1">一键迁移旧记忆</button></div>
+        <p class="hint" id="xcm-ob-out" style="margin:8px 0 0"></p>
+<p class="hint" id="xcm-test-out" style="margin:10px 0 0">配套可视化前端：xinchaomind.uk（同一账号无需重复配置）。</p>
         <div style="height:10px"></div>
         <button class="btn wide" id="xcm-test">测试连接并读取当前情绪</button>
         <div id="xcm-snap-panel" style="display:none;margin-top:12px;padding:14px 16px;border-radius:16px;background:var(--panel);border:1px solid var(--panel-line);backdrop-filter:blur(20px) saturate(1.55);box-shadow:var(--glass-shadow)"></div>
@@ -8502,6 +8510,7 @@ async function genReply(cfg,internalCtx){
     }
   }finally{
     try{_xcPostSync()}catch(e){}
+    try{_xcoEventAuto()}catch(e){}
     _sendKeys.delete(myKey);delete _acMap[myKey];
     if(sameConv()){_sending=false;sendBtnState(false);_ac=null}
   }
@@ -9844,7 +9853,8 @@ async function genReplyGroup(pcfg){
         accT=sanitizeGroupReply(r.t,selfName);accK=r.k;
         if(!accT.trim()){aiEl.remove();try{if(_gqGT&&_gqGT.length){_gwFeedQ=_gqGT.concat(_gwFeedQ)}}catch(e9){}_gqGT=null;continue}
         _gqGT=null;/* fix-m①：本成员请求已送达且有效 */
-        try{_xcPostSync()}catch(e){}/* v155-p：群聊聊后同步 */
+        try{_xcPostSync()}catch(e){}
+    try{_xcoEventAuto()}catch(e){}/* v155-p：群聊聊后同步 */
         const am={id:'msg_'+Date.now()+'_'+Math.floor(Math.random()*100000),role:'assistant',content:accT,
           friendId:g.id,senderId:cfg.id,senderName:selfName,timestamp:Date.now()};
         if(accK&&accK.trim())am.thinking=accK;
@@ -11177,7 +11187,7 @@ $('ibt-confirm').addEventListener('click',async()=>{await loadIBT();_ibt.confirm
 async function renderDiyXcMind(){/* v154-p：心潮情绪与记忆增强 配置回填 */
   try{
     const c=await _xcLoad();
-    sw2($('xcm-on'),!!c.xc.on);$('xcm-base').value=c.xc.base||'';$('xcm-token').value=c.xc.token||'';$('xcm-line-tpl').value=c.xc.lineTpl||'';$('xcm-mem-head').value=c.xc.memHead||'';$('xcm-mem-tpl').value=c.xc.memTpl||'';
+    sw2($('xcm-on'),!!c.xc.on);$('xcm-base').value=c.xc.base||'';$('xcm-token').value=c.xc.token||'';$('xcm-line-tpl').value=c.xc.lineTpl||'';$('xcm-mem-head').value=c.xc.memHead||'';try{_xcoFill();_xcoBind()}catch(e){}$('xcm-mem-tpl').value=c.xc.memTpl||'';
     sw2($('xcm-vect-on'),!!c.vect.on);$('xcm-vect-base').value=c.vect.base||'';$('xcm-vect-key').value=c.vect.key||'';$('xcm-vect-model').value=c.vect.model||'';
     sw2($('xcm-cmp-on'),!!c.cmp.on);$('xcm-cmp-base').value=c.cmp.base||'';$('xcm-cmp-key').value=c.cmp.key||'';$('xcm-cmp-model').value=c.cmp.model||'';$('xcm-cmp-th').value=c.cmp.th||1200;
   }catch(e){}
@@ -13737,6 +13747,13 @@ async function _advCalGuardM(cfg){
 }
 function _advCalRefreshM(){try{if(typeof loadCal==='function')loadCal().then(function(){try{if(typeof renderCalSec==='function'&&document.querySelector('#page-profile.active'))renderCalSec()}catch(e){}})}catch(e){}}
 async function _ibMemSearchExecM(cfg,q){
+  if(_xcoOn()){/* v160-p：OB 检索先行，失败落本地兜底 */
+    try{return _xcoBreath(String(q||'')).then(function(br){if(br&&br.ok&&br.text&&br.text.indexOf('未找到')===-1&&br.text.indexOf('没有')===-1){
+      return {ok:true,label:'已检索相关记忆（心潮念·OB）',response:'【相关记忆·心潮念】\n'+(br.text||''),detail:'',_xco:1}};return null}).catch(function(){return null}).then(function(v){if(v)return v;return _ibMemSearchExecMLocal(cfg,q)})}catch(e){}
+  }
+  return _ibMemSearchExecMLocal(cfg,q);
+}
+async function _ibMemSearchExecMLocal(cfg,q){
   const kws=String(q||'').split(/[\s,，、]+/).filter(Boolean).slice(0,6);
   if(!kws.length)return{ok:false,reason:'关键词为空'};
   const fid=cfg&&cfg.id;
@@ -13806,12 +13823,154 @@ async function _ibMemWriteExecM(cfg,op){
     createdBy:cfg.id,createdByName:cfgName(cfg),editedByUser:false};
   try{await dbPut('memories',mem)}catch(e){return{ok:false,reason:'写入本地数据库失败'}}
 _ibEmbedMemAsync(mem);/* v154-p：写入后异步向量化（不阻塞回复） */
+  if(_xcoOn())_xcoHoldDefer(mem);/* v160-p：心潮念 OB 中继（异步，不阻塞） */
   try{if(document.querySelector('#page-memory.active'))renderMemLib()}catch(e){}
   return{ok:true,label:'已写入记忆库 ·「'+title+'」',response:'已写入（仅自己可见；用户可在 Memory 页查看与编辑）。'};
 }
 /* ═══ v154-p：心潮情绪 + 记忆向量化/压缩（DIY → 心潮情绪 / 记忆增强） ═══ */
 let _xcCfg=null,_xcSnap={t:0,line:'',raw:null},_xcVecCache={},_xcVecOrder=[],_xcQv=null;/* v155-p：查询向量缓存（buildMemBlock 融合用） */
-function _xcDef(){return{xc:{on:true,base:'https://mcp.43451695.xyz',token:'',mode:'top3',lineTpl:'',memHead:'',memTpl:''},vect:{on:false,base:'https://api.siliconflow.cn/v1',key:'',model:'BAAI/bge-m3',mix:0.5},cmp:{on:false,base:'https://api.siliconflow.cn/v1',key:'',model:'deepseek-ai/DeepSeek-V3',th:1200}}}
+function _xcDef(){return{xc:{on:true,base:'https://mcp.43451695.xyz',token:'',mode:'top3',lineTpl:'',memHead:'',memTpl:''},vect:{on:false,base:'https://api.siliconflow.cn/v1',key:'',model:'BAAI/bge-m3',mix:0.5},cmp:{on:false,base:'https://api.siliconflow.cn/v1',key:'',model:'deepseek-ai/DeepSeek-V3',th:1200},ob:{on:false,mcp:'https://mcp.43451695.xyz/mcp',token:'',api:'https://43451695.xyz/cors/?k=47053030fe97366394f65b5f2e99f836&u=',pwd:''}}}
+/* ═══ v160-p：心潮念接管记忆（OB 中继客户端） ═══ */
+function _xcoOn(){return !!(_xcCfg&&_xcCfg.ob&&_xcCfg.ob.on)}
+function _xcoMcp(){var c=_xcCfg&&_xcCfg.ob;return (c&&c.mcp)||'https://mcp.43451695.xyz/mcp'}
+function _xcoApi(p){var c=_xcCfg&&_xcCfg.ob;var b=(c&&c.api)||'https://43451695.xyz/cors/?k=47053030fe97366394f65b5f2e99f836&u=';return String(b)+encodeURIComponent('http://127.0.0.1:18001'+p)}
+var _xcoId=1,_xcoSess='';
+async function _xcoRpc(method,params,tmo){
+  var url=_xcoMcp();var h={'Content-Type':'application/json','Accept':'application/json, text/event-stream'};
+  var tk=(_xcCfg&&_xcCfg.ob&&_xcCfg.ob.token)||'';if(tk)h['Authorization']='Bearer '+tk;
+  if(_xcoSess)h['Mcp-Session-Id']=_xcoSess;
+  var ac=new AbortController();var t=setTimeout(function(){ac.abort()},tmo||15000);
+  try{
+    var res=await fetch(url,{method:'POST',headers:h,body:JSON.stringify({jsonrpc:'2.0',id:_xcoId++,method:method,params:params||{}}),signal:ac.signal});
+    var sid=res.headers.get('mcp-session-id');if(sid)_xcoSess=sid;
+    var txt=await res.text();
+    try{var j=JSON.parse(txt);if(j&&j.jsonrpc)return j}catch(e){}
+    return {jsonrpc:'2.0',id:0,result:{content:[{type:'text',text:String(txt)}]}};
+  } finally { clearTimeout(t); }
+}
+async function _xcoInit(){var r=await _xcoRpc('initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'ib-mobile',version:'160'}},10000);
+  if(r&&r.result){try{await _xcoRpc('notifications/initialized',{},5000)}catch(e){}return true}return false}
+async function _xcoCall(name,args){
+  var ok=false;try{await _xcoInit()}catch(e){}
+  var r=await _xcoRpc('tools/call',{name:name,arguments:args||{}},25000);
+  if(r&&r.result&&!r.error){var txt='';(r.result.content||[]).forEach(function(x){txt+=(x.text||'')});return{ok:true,text:txt,raw:r.result}}
+  return {ok:false,reason:(r&&r.error&&r.error.message)||'网关调用失败'};
+}
+async function _xcoHold(mem){/* 记忆写入 → OB hold（domain→tags 附带，importance/valence/arousal 映射） */
+  var args={content:(mem&&(mem.content||mem.body))||''};
+  try{args.importance=Math.max(1,Math.min(10,parseInt(mem&&mem.importance)||5))}catch(e){}
+  var tg=[];try{tg=(mem&&(mem.tags||[]))||[]}catch(e){}
+  var dm=(mem&&mem.domain)||'';if(dm&&['情感','日常','创作','思考'].indexOf(dm)!==-1)tg=tg.concat([dm]);
+  if(tg.length)args.tags=tg.join(',');
+  if(mem&&typeof mem.valence==='number'&&mem.valence>=0)args.valence=Math.max(0,Math.min(1,mem.valence));
+  if(mem&&typeof mem.arousal==='number'&&mem.arousal>=0)args.arousal=Math.max(0,Math.min(1,mem.arousal));
+  return await _xcoCall('hold',args);
+}
+function _xcoHoldDefer(mem){Promise.resolve().then(function(){return _xcoHold(mem)}).catch(function(){})}
+async function _xcoBreath(q,extra){return await _xcoCall('breath',Object.assign({query:q||'',max_results:5},extra||{}))}
+var _xcoLv=0;
+async function _xcoEvent(type){/* 聊天结束情绪结算（幂等，20s 防抖） */
+  if(!_xcoOn())return;var now=Date.now();if(now-_xcoLv<20000)return;_xcoLv=now;
+  var args={event_id:'ibe_'+now+'_'+Math.floor(Math.random()*1e6)};
+  if(type&&['companionship','affection','intimacy','sharing','discovery','task_progress','reflection','conflict','loss','reconciliation'].indexOf(type)!==-1)args.interaction_type=type;
+  try{await _xcoCall('xinchao_event',args)}catch(e){}
+}
+function _xcoInfer(){var t='';try{var ms=document.querySelectorAll('[class*=msg]');var el=ms[ms.length-1];t=(el&&el.textContent)||''}catch(e){}
+  if(/想你|爱你|抱抱|亲亲|心疼|在乎/.test(t))return'affection';
+  if(/哈哈|好玩|发现了|分享|你知道吗/.test(t))return'sharing';
+  if(/拜托|帮忙|完成|搞定|谢谢/.test(t))return'task_progress';
+  if(/对不起|抱歉|和好/.test(t))return'reconciliation';
+  if(/难受|难过|失落|分手|离开/.test(t))return'loss';
+  if(/生气|气死|烦/.test(t))return'conflict';
+  if(/想明白|沉淀|复盘|思考/.test(t))return'reflection';
+  if(/一起|探索|研究|看看/.test(t))return'discovery';
+  return'companionship';
+}
+function _xcoEventAuto(){_xcoEvent(_xcoInfer())}
+/* OB 直连（经中转 + Bearer 密码） */
+async function _xcoObFetch(path,opts){
+  var url=_xcoApi(path);var h=Object.assign({'Content-Type':'application/json'},(opts&&opts.headers)||{});
+  var p=(_xcCfg&&_xcCfg.ob&&_xcCfg.ob.pwd)||'';if(p)h['Authorization']='Bearer '+p;
+  var ac=new AbortController();var t=setTimeout(function(){ac.abort()},(opts&&opts.timeout)||12000);
+  try{var res=await fetch(url,{method:(opts&&opts.method)||'GET',headers:h,body:(opts&&opts.body)?JSON.stringify(opts.body):undefined,signal:ac.signal});
+    var txt=await res.text();try{return JSON.parse(txt)}catch(e){return {error:String(txt)}}
+  } finally { clearTimeout(t); }
+}
+/* OB 配置热更新：embedding + dehydration 同步推送 */
+async function _xcoSyncOb(){
+  if(!_xcoOn())throw new Error('请先开启「心潮念接管记忆」');
+  var ve=(_xcCfg&&_xcCfg.vect)||{};var cp=(_xcCfg&&_xcCfg.cmp)||{};
+  var body={persist:true,embedding:{enabled:!!(ve.on!==false),backend:'api',api_format:'openai_compat'},dehydration:{api_format:'openai_compat'}};
+  if(ve.base)body.embedding.base_url=String(ve.base).replace(/\/+$/,'');
+  if(ve.model)body.embedding.model=ve.model;
+  if(ve.key)body.embedding.api_key=ve.key;
+  if(cp.base)body.dehydration.base_url=String(cp.base).replace(/\/+$/,'');
+  if(cp.model)body.dehydration.model=cp.model;
+  if(cp.key)body.dehydration.api_key=cp.key;
+  var r=await _xcoObFetch('/api/config',{method:'POST',body:body,timeout:15000});
+  if(r&&r.error)throw new Error(String(r.error));
+  return r;
+}
+/* OB 全量目录（记忆视界数据源） */
+async function _xcoBuckets(){return await _xcoObFetch('/api/buckets')}
+function _xcoMapBuckets(arr){var out=[],now=Date.now();
+  (arr||[]).forEach(function(b){out.push({id:b.id,title:b.name||'',content:b.content_preview||'',body:b.content_preview||'',
+    domain:(b.domain&&b.domain[0])||'日常',tags:b.tags||[],importance:b.importance||5,
+    valence:(typeof b.valence==='number')?b.valence:0.5,arousal:(typeof b.arousal==='number')?b.arousal:0.3,
+    score:b.score||0,activationCount:b.activation_count||0,
+    created:b.created?new Date(b.created).getTime():now,lastActivated:b.last_active?new Date(b.last_active).getTime():now,
+    pinned:!!b.pinned,external:1})});
+  return out;
+}
+/* 旧记忆迁移：IndexedDB → OB hold */
+async function _xcoMigrate(){
+  var all=[];try{all=await dbGetAll('memories')}catch(e){}
+  if(!all.length)return '本地记忆库为空，无需迁移';
+  var n=0,fail=0;
+  for(var i=0;i<all.length;i++){var m=all[i];
+    try{var r=await _xcoHold({content:(m.title?m.title+'：':'')+String(m.content||'').slice(0,1200),tags:m.tags||[],domain:m.domain,importance:m.importance,valence:m.valence,arousal:m.arousal});
+      if(r&&r.ok)n++;else fail++;
+    }catch(e){fail++}
+  }
+  return '迁移完成：成功 '+n+' 条，失败 '+fail+' 条（可重试）。';
+}
+async function _xcoSaveOb(){/* 保存 ob 配置到 apiSettings */
+  var r=null;try{r=await dbGet('apiSettings','xcMind')}catch(e){}
+  r=Object.assign(_xcDef(),r||{});
+  r.ob={on:!!_xcoTgl('xcm-ob-on',r.ob.on),mcp:($('xcm-ob-mcp').value||r.ob.mcp),token:($('xcm-ob-token').value||r.ob.token),
+        api:($('xcm-ob-api').value||r.ob.api),pwd:($('xcm-ob-pwd').value||r.ob.pwd)};
+  try{await dbPut('apiSettings',r)}catch(e){throw e}
+  _xcCfg=r;return r;
+}
+function _xcoTgl(id,def){var el=document.getElementById(id);if(!el)return !!def;return !!el.getAttribute('data-on')}
+function _xcoFill(){/* 回填 UI */
+  var c=_xcCfg&&_xcCfg.ob||{};
+  if($('xcm-ob-mcp'))$('xcm-ob-mcp').value=c.mcp||'';
+  if($('xcm-ob-token'))$('xcm-ob-token').value=c.token||'';
+  if($('xcm-ob-api'))$('xcm-ob-api').value=c.api||'';
+  if($('xcm-ob-pwd'))$('xcm-ob-pwd').value=c.pwd||'';
+  var el=$('xcm-ob-on');
+  if(el){if(c.on)el.setAttribute('data-on','1');else el.removeAttribute('data-on');
+    var i=el.querySelector('i');if(i)i.style.background=c.on?'var(--acc)':'#9aa8c0'}
+}
+async function _xcoBind(){/* 开关/按钮绑定（幂等） */
+  var on=$('xcm-ob-on');
+  if(on&&!on.__b160){on.__b160=1;
+    on.addEventListener('click',function(){var on2=!!on.getAttribute('data-on');if(on2)on.removeAttribute('data-on');else on.setAttribute('data-on','1');
+      var i=on.querySelector('i');if(i)i.style.background=on.getAttribute('data-on')?'var(--acc)':'#9aa8c0'});
+  }
+  var sy=$('xcm-ob-sync');
+  if(sy&&!sy.__b160){sy.__b160=1;sy.addEventListener('click',async function(){
+    var out=$('xcm-ob-out');if(out)out.textContent='同步中…（向量化+压缩配置推送到 OB）';
+    try{await _xcoSaveOb();var r=await _xcoSyncOb();if(out)out.textContent='已保存并同步 ✓ '+(r&&r.updated?('更新项：'+r.updated.join(', ')):'');
+      toast('OB 配置已同步');}catch(e){if(out)out.textContent='失败：'+String(e&&e.message||e)}
+  });}
+  var mg=$('xcm-ob-migrate');
+  if(mg&&!mg.__b160){mg.__b160=1;mg.addEventListener('click',async function(){
+    var out=$('xcm-ob-out');if(out)out.textContent='迁移中…（本机记忆逐条写入 OB）';
+    try{await _xcoSaveOb();var m=await _xcoMigrate();if(out)out.textContent=m;toast('迁移完成');}catch(e){if(out)out.textContent='迁移失败：'+String(e&&e.message||e)}
+  });}
+}
 async function _xcLoad(){if(_xcCfg)return _xcCfg;let r=null;try{r=await dbGet('apiSettings','xcMind')}catch(e){}
  _xcCfg=Object.assign(_xcDef(),r||{});!(_xcCfg.xc=Object.assign(_xcDef().xc,_xcCfg.xc||{}));!(_xcCfg.vect=Object.assign(_xcDef().vect,_xcCfg.vect||{}));!(_xcCfg.cmp=Object.assign(_xcDef().cmp,_xcCfg.cmp||{}));return _xcCfg}
 async function _xcSave(){try{await dbPut('apiSettings',_xcCfg)}catch(e){_xcCfg=null}}
@@ -18868,7 +19027,11 @@ var _vzHeatKey='ibMemHeat';
 var _vzCache={mems:null,built:false,count:-1};
 function _vzDomain(m){return DC[m.domain]?m.domain:'日常'}
 function _vzAllMems(){if(_vzCache.mems)return Promise.resolve(_vzCache.mems);
-  return dbGetAll('memories').then(function(a){_vzCache.mems=a||[];return _vzCache.mems}).catch(function(){_vzCache.mems=[];return _vzCache.mems});}
+  if(_xcoOn()){/* v160-p：OB 全量目录优先 */
+    return _xcoBuckets().then(function(a){var m=_xcoMapBuckets(a);if(m&&m.length){_vzCache.mems=m;return m}return _vzLocalAll()}).catch(function(){return _vzLocalAll()});
+  }
+  return _vzLocalAll();}
+function _vzLocalAll(){return dbGetAll('memories').then(function(a){_vzCache.mems=a||[];return _vzCache.mems}).catch(function(){_vzCache.mems=[];return _vzCache.mems});}
 function _vzClearCache(){_vzCache.mems=null;_vzCache.count=-1}
 
 /* ═════ ① 语义搜索 ═════ */
