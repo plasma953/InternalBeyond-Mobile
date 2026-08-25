@@ -2,7 +2,8 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<!-- InternalBeyond Mobile v151-p · 思考链双轨轮（Anthropic 思考链：开=电脑端思路笔记原文 / 关=官方原生思考摘要；联网搜索下标签截流整串化） -->
+<!-- InternalBeyond Mobile v152-p · MCP 按需注入轮（懒加载：平时只带用途一行，AI 需要时 <ws_mcp> 展开该服务器全部工具） -->
+<!-- v152-p 修订单：①MCP 懒加载——buildToolsBlock 对 MCP 改为按需注入（服务器可切回全量）：每轮只带「mcp.别名（用途）：共 N 个工具；调用请先输出 <ws_mcp name="别名"/>」一行；新标签 <ws_mcp> 已入 WS_OPEN_RE / segmentAiText / EXEC_WS / WS_META / WS_ICON / _ST_TAGS / _stLabel 七处清单；执行器识别后把该服务器全部工具（名+描述+schema）以结果回传并走既有续答链，AI 下一轮即可输出具体 <ws_tool>。②服务器编辑弹窗新增「用途说明」与「工具注入方式」（按需/全量，默认按需）。③预设四卡预填用途短句。旧数据无 purpose/lazy 字段自动落到默认（按需+用途取服务器 desc），不破坏既有备份。 -->
 <!-- v151-p 修订单：①思考链双轨制（Anthropic）——「启用思考链」开＝电脑端同源 <thinking> 标签方案：思路笔记原文完整可见、可在里面布置演算、只按普通输出计一次费、不再下发 thinking 形参；关＝官方原生思考：形参照旧按代次选 adaptive/enabled，界面按官方设计仅显示另一模型生成的思考摘要、思考按实际发生 token 计费——此前「开着却看得少、扣得多」的根子即官方摘要机制、非解析丢失，本轮起想看原文勾开关即可。两轨由勾选二选一、绝不叠发不叠费；标签方案对 Anthropic 只前置 system 格式段、不加末条逐轮提醒（末条消息保持原文，消息级缓存不被搅动，也不与续写轮「不要输出 <thinking>」打架）；授权原生思考的 _anthNative 标只在聊天主链（sendMsg / 群聊 genReply / 手动续写药丸）由 callAIC 下发——摘要/记忆/标题/连通测试等后台任务直调 callAI 无此标，照旧零思考零新增开销；随轮移植电脑端 _makeAnthropicWebThinkMux 的整串对位 _splitThinkAnyLive/_parseThinkAny（仅 Anthropic＋联网搜索启用）：开搜时模型先吐搜索文本再写 <thinking>，只认开头的旧截流会把标签整段漏进正文——电脑端修过的坑本端补齐；手动续写药丸对 Anthropic 保持思考形态与主轮一致（形参启停会使消息级缓存整段失效，与自动续写轮 fix-m② 同款豁免）；「启用思考链」设置说明同步改写。②社交圈审查修一：定时推送「发动态」死门槛拆除——该径的发动态资格此前还要求进阶指令区 adv.beyond 为真，但该开关手机端自 v83-m r6 起绑定已退役、无处可开（仅电脑端备份可能带入旧真值），纯手机用户/新装机上恒 false：Presence 开着「发动态」也永远不够格、只能落到留笺/普通开口，等于这条路静默失效；现门槛对齐 ibAutoTick 径（全局「启用社交圈」＋自动发布＋该 AI beyond.on＋发帖权限）。③社交圈审查修二：自动评论撞上单帖 20 条上限时 ibfInsertComment 返回 'cap'（真值字符串）被当成功——弹「评论了一条动态」、误记 ibf_last_ 白白吃掉本轮发布窗口；现按失败处理。本轮社交圈全量通读其余管线（发布/评论/转发/可见范围/收件箱/查看确认/自动发布轮转/群聊注入与回传）未见同级缺陷。 -->
 <!-- v150-p 修订单（三项）：①生成记忆输出上限兜底——撤掉单独的小上限（前版 1024），交还 callAI 的「服务商顶格＋超限自动降档」通道，与聊天正文同一套兜底（DeepSeek/Gemini 65536、Anthropic 64000、OpenAI 系 32768…，服务端嫌大自动取建议值或减半重试）；思考型模型的隐藏思考与正文共用这份预算，小上限被思考吃光就会空返回/截断——历史上「返回内容不是 JSON」的帮凶之一，桌面端稳是因为它一直走顶格通道，现在同一口径。②API 卡拖拽排序手感重做——旧版病根：长按计时期内任何一像素位移都取消计时，手指按下天然微颤、十次九次点不着；拖起后页面滚动照跑、卡片纹丝不动只有指示线。现按下给 10px 容差（超过才视为滚动意图放行）、拖起瞬间冻结页面滚动（松手即撤）、卡片跟手抬起（位移＋轻放大投影，落点仍按目标卡上下沿指示线）、指尖近屏幕上下边缘自动滚屏（长列表一次拖到底）；落位、入库、提示与旧版一致，长按时长 280→260ms。③导航区 API 图标查重换款——原图标与 Circle 社交圈为完全同款双人剪影（撞图标实锤），换为插头款；随手查重：Desk 桌面图标内部无重样，抽屉 Guide 与桌面「日志」共用一款书本图标（本轮未动）。④版本联动 v150-p。本轮其余条目属另一端专属模块，-p 线无涉。 -->
 <!-- v149-p 修订单（两项）：①语音消息声学语气分析（向电脑端对齐并升级）——移植电脑端 _vmToneAnalyze / _vmDecode：按住语音条说完、转写之后，浏览器本地对这段录音做确定性声学分析（零联网）——情绪倾向（声学×文字两路融合）、声线/变化（轻柔有力·尾音起伏·渐强渐弱·颤动）、语速（字/秒）、音量、停顿、基频 Hz、语调起伏，产出一句短描述定格存 voice.tone；发给 API 的等效文本升格为「[语音消息 N秒｜声学语气参考: …] 文字稿」（与电脑端 _voiceApiLine 同格式；聊天模型收不到原声，语气段恒附），界面不显示、不改旧消息文本、升级零缓存重建，解码或分析失败静默跳过照常发送。在电脑端分析器之上追加三项升级：音色明暗（一阶差分能量比≈谱倾斜，仅明显偏亮/偏沉时报）、发声清晰度（基频可判帧占比——清晰 vs 带气声含混）、音区偏低/偏高标注（与「基频约xxHz」并列，便于模型直读）。②生成记忆双根修（Chat / Letters / Blog 共用核心 _ibGenMemCore，参考电脑端 _generateMemoryCore / parseMemoryFields 移植）——旧 JSON 协议两处硬伤（用户截图实锤）：(a)弱模型复述指令或围栏包裹 →「返回内容不是 JSON」直接失败、记忆写不进库；(b)Chat 路的视角提示写成「从{用户名}的视角」，生成物以用户第一人称落在 AI 名下——User 与 char 混淆的直接根子。现协议改电脑端同款「字段：值」文本＋按标签位置切分（跨行字段完整捕获），解析不齐时宽容降级（标题回落、内容回落原文前 300 字），只有空返回才报错；任务提示与电脑端逐字同源——以 AI 视角写、「用名字称呼双方，不要用代词」，并随行注入人设背景与关系设定；补齐「是否已解决 / 可见性」两字段（「私密」→ visibility:private）；maxTokens 700→1024；成败文案对齐电脑端。配套范围兜底：Save Memory 默认路取「该 AI 上下文条数」与 50 的较小者（上下文设 10 就只取 10；群聊按 grpLimit），封档线之前的消息一律不参与；选择模式同受封档约束（选中含封档前消息即阻止并提示，与电脑端同界；频道无封档概念不受限）；转写稿顶上语音消息的空 content（原式恒为空行，旧逻辑 BUG）；超 4000 字预算丢最旧保最近。③版本联动 v149-p。本轮其余条目属另一端专属模块，-p 线无涉。 -->
@@ -3644,7 +3645,9 @@ self.addEventListener(&#x27;fetch&#x27;,function(e){
   <h3 id="mcpe-title">添加 MCP 服务器</h3>
   <div class="f-group"><label>别名 <span class="lb-note">（字母数字，AI 以 mcp.别名.工具名 调用）</span></label><input id="mcpe-alias" maxlength="24" placeholder="如 amap"></div>
   <div class="f-group"><label>服务器 URL <span class="lb-note">（Streamable HTTP）</span></label><input id="mcpe-url" placeholder="https://…/mcp"></div>
-  <div class="f-group"><label>令牌 Token <span class="lb-note">（选填，随请求以 Authorization: Bearer 发送）</span></label><input id="mcpe-token" placeholder="官方开放平台领取的个人令牌"></div><!-- v131 需求③：麦当劳 / 瑞幸等官方 MCP 均以 Bearer Token 鉴权 -->
+  <div class="f-group"><label>令牌 Token <span class="lb-note">（选填，随请求以 Authorization: Bearer 发送）</span></label><input id="mcpe-token" placeholder="官方开放平台领取的个人令牌"></div><!-- v152-p：MCP 懒加载 -->
+  <div class="f-group"><label>用途说明 <span class="lb-note">（告诉 AI 这个服务器是干什么的；按需注入时 AI 靠它判断要不要展开）</span></label><input id="mcpe-purpose" maxlength="200" placeholder="如：麦当劳：查菜单、领券、积分、下单"></div>
+  <div class="f-group"><label>工具注入方式</label><div class="sel"><select id="mcpe-lazy"><option value="lazy">按需注入（默认，省 token）</option><option value="full">全量注入（每次全带工具清单）</option></select></div></div><!-- v131 需求③：麦当劳 / 瑞幸等官方 MCP 均以 Bearer Token 鉴权 -->
   <p class="hint" style="margin-top:0">保存后点「连接」拉取工具列表。需要服务器允许浏览器跨域访问（CORS）。</p>
   <div class="sheet-btns"><button class="btn danger" id="mcpe-del" style="display:none">删除</button><button class="btn" data-close="1">取消</button><button class="btn primary" id="mcpe-save">保存</button></div>
 </div>
@@ -5182,7 +5185,7 @@ function mdSoften(text){
 }
 
 /* ═══════════ 电脑版工作台指令的宽容解析（展示 + ws_tool 可执行）═══════════ */
-const WS_OPEN_RE=/<ws_(help|project|read|create|edit|run|tool|gen_image|make_docx|make_pdf|make_xlsx|ask|mem_search|mem_write|cal_add|cal_edit|cal_del|cal_meet|cal_list|beyond_view|post|comment|repost|sig|music|weather|loc|phone|payreq|beyond_inbox|search|ctx)\b([^>]*)>|```file:([^\n]+)\n/gi;/* v74-m r5：+mem_write */
+const WS_OPEN_RE=/<ws_(help|project|read|create|edit|run|tool|mcp|gen_image|make_docx|make_pdf|make_xlsx|ask|mem_search|mem_write|cal_add|cal_edit|cal_del|cal_meet|cal_list|beyond_view|post|comment|repost|sig|music|weather|loc|phone|payreq|beyond_inbox|search|ctx)\b([^>]*)>|```file:([^\n]+)\n/gi;/* v74-m r5：+mem_write */
 function wsAttr(attrs,name){
   const s=String(attrs||'');
   let m=s.match(new RegExp(name+'\\s*=\\s*"([^"]*)"','i'));
@@ -5219,6 +5222,7 @@ function segmentAiText(text){
     }
     const op={type:tag,attrs:attrs,body:body,truncated:!closed};
     if(tag==='tool'){op.name=wsAttr(attrs,'name');op.args=wsAttr(attrs,'args')||body.trim()}
+    else if(tag==='mcp'){op.name=wsAttr(attrs,'name')}
     else if(tag==='ask'){op.title=wsAttr(attrs,'title')}
     else if(tag==='project'){op.name=wsAttr(attrs,'name')}
     else if(tag==='run'){op.lang=wsAttr(attrs,'lang');op.entry=wsAttr(attrs,'entry')}
@@ -6696,8 +6700,9 @@ function bindImgTaps(root){
       document.getElementById('imgview').classList.add('show')});
   });
 }
-const WS_META={help:['','ICode Skill'],project:['','建项目'],read:['','读文件'],search:['','检索工作区'],ctx:['','读取上下文'],create:['','建文件'],edit:['','改文件'],run:['','跑代码'],gen_image:['','生成图片'],make_docx:['','生成 Word'],make_pdf:['','生成 PDF'],make_xlsx:['','生成表格'],tool:['','调用工具'],ask:['','选项卡'],mem_search:['','检索记忆库'],mem_write:['','写入记忆库'],cal_add:['','写入日历'],cal_edit:['','修改日历'],cal_del:['','移除日程'],cal_meet:['','更正纪念日'],cal_list:['','查询日程'],beyond_view:['','查看动态'],post:['','发布动态'],comment:['','评论动态'],repost:['','转发动态'],sig:['','更新签名'],music:['','播放器'],weather:['','天气'],loc:['','定位'],phone:['','手机状态'],payreq:['','支付请求'],beyond_inbox:['','查询互动收件箱']};/* fix-r3：跨端历史兼容——电脑端专属取数标签在手机端渲染为卡片而非原文 *//* v49h-m：操作卡去 emoji，与电脑端一致靠左侧竖杠与文字标识 */
+const WS_META={mcp:['','工具清单'],help:['','ICode Skill'],project:['','建项目'],read:['','读文件'],search:['','检索工作区'],ctx:['','读取上下文'],create:['','建文件'],edit:['','改文件'],run:['','跑代码'],gen_image:['','生成图片'],make_docx:['','生成 Word'],make_pdf:['','生成 PDF'],make_xlsx:['','生成表格'],tool:['','调用工具'],ask:['','选项卡'],mem_search:['','检索记忆库'],mem_write:['','写入记忆库'],cal_add:['','写入日历'],cal_edit:['','修改日历'],cal_del:['','移除日程'],cal_meet:['','更正纪念日'],cal_list:['','查询日程'],beyond_view:['','查看动态'],post:['','发布动态'],comment:['','评论动态'],repost:['','转发动态'],sig:['','更新签名'],music:['','播放器'],weather:['','天气'],loc:['','定位'],phone:['','手机状态'],payreq:['','支付请求'],beyond_inbox:['','查询互动收件箱']};/* fix-r3：跨端历史兼容——电脑端专属取数标签在手机端渲染为卡片而非原文 *//* v49h-m：操作卡去 emoji，与电脑端一致靠左侧竖杠与文字标识 */
 var WS_ICON={
+  mcp:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5a5.5 5.5 0 0 1 5.5 5.5c0 2.1-1.2 3.9-2.9 4.9l2.4 2.4a1 1 0 0 1 0 1.4l-1.6 1.6a1 1 0 0 1-1.4 0L11.1 15a5.5 5.5 0 1 1-3.9-12.2c.6-.2.9-.3 1.3-.3Z"/></svg>',
   folder:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5a2 2 0 0 1 2-2h3.17a2 2 0 0 1 1.41.59l1.42 1.41h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5z"/></svg>',
   file:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6l-4-4z"/><path d="M12 2v4h4"/></svg>',
   create:'<svg class="ws-op-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>',
@@ -7827,10 +7832,10 @@ function _parseThinkAny(raw){
   return{thinking:(p.thinking||'').trim(),reply:(p.reply||'').trim()};
 }
 /* v59-m t26：流式期间标签不再裸奔——完整标签块折成完成小卡，未闭合尾部折成施工中小卡（纯视觉层，落库与收尾渲染不变） */
-const _ST_TAGS='ws_help|ws_create|ws_edit|ws_read|ws_project|ws_run|ws_tool|ws_gen_image|ws_make_docx|ws_make_pdf|ws_make_xlsx|ws_ask|ws_post|ws_comment|ws_music|ws_weather|ws_sig|ws_mem_write|ws_mem_search|ws_cal_add|ws_cal_edit|ws_cal_del|ws_cal_meet|ws_cal_list|ws_beyond_view|ws_repost|ws_loc|ws_phone|ws_payreq|ws_beyond_inbox|ws_search|ws_ctx|cal_note|mem_create|mem_update|mem_delete';/* v89-m：+ws_help（此前流式期唯一裸奔的标签） *//* v82-m r2：+run、tool、make_×4、cal_×4、beyond_view——手机端能收到的指令全部进流式卡，与电脑端对齐（此前这些标签流式期裸奔，任务 2） *//* v81-m r7：+ws_sig；v72-m：+Beyond/播放器/天气；v74-m r5：+记忆库写入/检索 */
+const _ST_TAGS='ws_help|ws_create|ws_edit|ws_read|ws_project|ws_run|ws_tool|ws_mcp|ws_gen_image|ws_make_docx|ws_make_pdf|ws_make_xlsx|ws_ask|ws_post|ws_comment|ws_music|ws_weather|ws_sig|ws_mem_write|ws_mem_search|ws_cal_add|ws_cal_edit|ws_cal_del|ws_cal_meet|ws_cal_list|ws_beyond_view|ws_repost|ws_loc|ws_phone|ws_payreq|ws_beyond_inbox|ws_search|ws_ctx|cal_note|mem_create|mem_update|mem_delete';/* v89-m：+ws_help（此前流式期唯一裸奔的标签） *//* v82-m r2：+run、tool、make_×4、cal_×4、beyond_view——手机端能收到的指令全部进流式卡，与电脑端对齐（此前这些标签流式期裸奔，任务 2） *//* v81-m r7：+ws_sig；v72-m：+Beyond/播放器/天气；v74-m r5：+记忆库写入/检索 */
 function _stName(attrs){const m=String(attrs||'').match(/(?:path|file|filename|name|title)="([^"]*)"/i);return m?m[1]:''}
 function _stLabel(tag,attrs,busy){
-  const map={ws_help:'读取 ICode Skill',ws_create:'创建文件',ws_edit:'编辑文件',ws_read:'读取文件',ws_project:'创建项目',ws_run:'跑代码',ws_tool:'调用工具',ws_gen_image:'生成图像',ws_make_docx:'生成 Word',ws_make_pdf:'生成 PDF',ws_make_xlsx:'生成表格',ws_ask:'选项卡',ws_post:'发布动态',ws_comment:'评论动态',ws_music:'播放器',ws_weather:'天气',ws_sig:'更新签名',ws_mem_write:'写入记忆库',ws_mem_search:'检索记忆库',ws_cal_add:'写入日历',ws_cal_edit:'修改日历',ws_cal_del:'移除日程',ws_cal_meet:'更正纪念日',ws_cal_list:'查询日程',ws_beyond_view:'查看动态',ws_repost:'转发动态',ws_loc:'定位',ws_phone:'手机状态',ws_beyond_inbox:'查询互动收件箱',ws_search:'检索工作区',ws_ctx:'读取上下文',ws_payreq:'支付请求',cal_note:'留下便笺',mem_create:'写入记忆',mem_update:'更新记忆',mem_delete:'删除记忆'};/* v82-m r2：文案与收尾操作卡（WS_META）同词 */
+  const map={ws_help:'读取 ICode Skill',ws_create:'创建文件',ws_edit:'编辑文件',ws_read:'读取文件',ws_project:'创建项目',ws_run:'跑代码',ws_tool:'调用工具',ws_mcp:'展开工具清单',ws_gen_image:'生成图像',ws_make_docx:'生成 Word',ws_make_pdf:'生成 PDF',ws_make_xlsx:'生成表格',ws_ask:'选项卡',ws_post:'发布动态',ws_comment:'评论动态',ws_music:'播放器',ws_weather:'天气',ws_sig:'更新签名',ws_mem_write:'写入记忆库',ws_mem_search:'检索记忆库',ws_cal_add:'写入日历',ws_cal_edit:'修改日历',ws_cal_del:'移除日程',ws_cal_meet:'更正纪念日',ws_cal_list:'查询日程',ws_beyond_view:'查看动态',ws_repost:'转发动态',ws_loc:'定位',ws_phone:'手机状态',ws_beyond_inbox:'查询互动收件箱',ws_search:'检索工作区',ws_ctx:'读取上下文',ws_payreq:'支付请求',cal_note:'留下便笺',mem_create:'写入记忆',mem_update:'更新记忆',mem_delete:'删除记忆'};/* v82-m r2：文案与收尾操作卡（WS_META）同词 */
   const n=_stName(attrs),base=map[tag]||tag;
   return (busy?'正在'+base:base)+(n?(' · '+n):'')+(busy?'…':'');
 }
@@ -8592,12 +8597,12 @@ async function execToolOp(op){
   if(!tool)return{ok:false,detail:'未找到名为「'+name+'」的工具'};
   return await ibToolFetch(tool,args);
 }
-const EXEC_WS={help:1,tool:1,search:1,ctx:1,gen_image:1,project:1,read:1,create:1,edit:1,make_docx:1,make_pdf:1,make_xlsx:1,mem_search:1,mem_write:1,cal_add:1,cal_edit:1,cal_del:1,cal_meet:1,cal_list:1,beyond_view:1};
+const EXEC_WS={help:1,tool:1,mcp:1,search:1,ctx:1,gen_image:1,project:1,read:1,create:1,edit:1,make_docx:1,make_pdf:1,make_xlsx:1,mem_search:1,mem_write:1,cal_add:1,cal_edit:1,cal_del:1,cal_meet:1,cal_list:1,beyond_view:1};
 const WORKSPACE_EXEC_M={help:1,project:1,read:1,search:1,ctx:1,create:1,edit:1,make_docx:1,make_pdf:1,make_xlsx:1};
 const _WS_SIDE_EFFECT_M={mem_write:1,cal_add:1,cal_edit:1,cal_del:1,cal_meet:1};/* v132-p：动作类指令——执行完只剩一句「成功 / 失败」，不值得为它另起一轮续答；结果照旧随下一条消息回传（fed 机制不变） */
 function _wsSideEffectM(r){if(!r)return false;if(_WS_SIDE_EFFECT_M[r.type])return true;if(r.type==='tool'&&/^bt_write$/i.test(String(r.name||'')))return true;return false}
 /* v133-p：续答触发范围——取数类按类别可由用户关掉续答（outputSettings.toolTrig，缺省全开；关掉＝与动作类同样只随下一条消息回传）。类别：http 外部工具 / mcp MCP 工具 / bt 蓝牙读取 / mem 记忆检索 / view 查看动态与查询日程 / env 定位天气手机状态（走 _gwFeedQ）；工作区类型（ICode）不归此处管 */
-function _wsTrigKindM(r){if(!r)return '';if(r.type==='tool'){var n=String(r.name||'');if(/^mcp\./i.test(n))return 'mcp';if(/^bt_/i.test(n))return 'bt';return 'http'}if(r.type==='mem_search')return 'mem';if(r.type==='beyond_view'||r.type==='cal_list')return 'view';return ''}
+function _wsTrigKindM(r){if(!r)return '';if(r.type==='mcp')return 'mcp';if(r.type==='tool'){var n=String(r.name||'');if(/^mcp\./i.test(n))return 'mcp';if(/^bt_/i.test(n))return 'bt';return 'http'}if(r.type==='mem_search')return 'mem';if(r.type==='beyond_view'||r.type==='cal_list')return 'view';return ''}
 function _wsTrigOnM(kind){if(!kind)return true;try{var t=(_out&&_out.toolTrig)||{};return t[kind]!==false}catch(e){return true}}/* v76-m r7：+beyond_view（结果按同通道回传） *//* v74-m r5：+mem_write *//* v61-m t11：make_* 已移植真实执行；仅 run 仍依赖桌面沙箱，只展示 */
 async function procToolOps(cfg,m){
   const segs=segmentAiText(m.content||'');
@@ -8617,6 +8622,10 @@ async function procToolOps(cfg,m){
       m.wsResults[i]=_wsAuto
         ?{type:'help',pendingConfirm:false,running:true,first:first,helpKey:hk,auto:true}
         :{type:'help',pendingConfirm:true,first:first,helpKey:hk,auto:false};
+    }else if(op.type==='mcp'){
+      /* v152-p：MCP 懒加载——AI 请求展开某服务器工具清单：工具已本地落库，直接回传（名+描述+schema），无需确认、不经网络 */
+      const _msv=IBMCP._sv(op.name), _mtl=(_msv&&_msv.tools)?_msv.tools.filter(t=>t.enabled!==false):[];
+      m.wsResults[i]={type:'mcp',name:op.name,ok:true,response:_ibCut(_msv?('【'+(_msv.alias||op.name)+'】共 '+_mtl.length+' 个工具：\n'+_mtl.map(t=>'- mcp.'+(_msv.alias||op.name)+'.'+t.name+'：'+_ibCut(String(t.description||'').replace(/\s+/g,' '),200)+(t.inputSchema?'\n  参数：'+_ibCut(JSON.stringify(t.inputSchema),900):'')).join('\n')):'服务器「'+String(op.name)+'」未连接或未加载工具（请先在 DIY 页连接）',12000),fed:false};
     }else if(op.type==='tool'){
       const isMcp=/^mcp\./i.test(op.name||'');
       const needConfirm=isMcp?(_mp.mcp.confirm!==false):(_ibt.confirm!==false);
@@ -9132,7 +9141,10 @@ async function buildToolsBlock(){
   if(_mp.mcp.enabled){
     (_mp.mcp.servers||[]).forEach(sv=>{
       if(sv.enabled===false)return;
-      (sv.tools||[]).forEach(t=>{
+      const _mts=(sv.tools||[]).filter(t=>t.enabled!==false);
+      if(!_mts.length)return;
+      if(sv.lazy===false){/* 全量模式：旧行为 */
+      _mts.forEach(t=>{
         if(t.enabled===false)return;
         /* v147-p：#1 完整回传工具 schema——原先只给 AI 看 120 字描述＋裸参数名清单，类型/枚举/嵌套结构/字段说明全丢，
            麦当劳/瑞幸这类多步下单流程（items 结构、preview→create 字段沿用）只能靠参数名瞎猜；
@@ -9140,6 +9152,10 @@ async function buildToolsBlock(){
         let sc='';try{if(t.inputSchema)sc=JSON.stringify(t.inputSchema)}catch(e){}
         list.push('- mcp.'+sv.alias+'.'+t.name+'：'+_ibCut(String(t.description||'').replace(/\s+/g,' '),2000)+(sc?'\n  参数 schema：'+_ibCut(sc,3000):''));
       });
+      }else{/* v152-p：按需注入（默认）——只报用途与数量，需要时输出 <ws_mcp> 展开 */
+        const _brief=_ibCut(String(sv.purpose||sv.desc||'').replace(/\s+/g,' '),120);
+        list.push('- mcp.'+sv.alias+'：'+(_brief||'MCP 服务器')+'（共 '+_mts.length+' 个工具；调用请先输出 <ws_mcp name="'+sv.alias+'"/> 展开工具清单）');
+      }
     });
   }
   if(navigator.bluetooth&&_mp.bt&&_mp.bt.aiTools){
@@ -11092,14 +11108,14 @@ $('ibt-enabled').addEventListener('click',async()=>{await loadIBT();_ibt.enabled
 $('ibt-confirm').addEventListener('click',async()=>{await loadIBT();_ibt.confirm=!(_ibt.confirm!==false);sw2($('ibt-confirm'),_ibt.confirm!==false);try{await dbPut('apiSettings',_ibt)}catch(e){toast('保存失败')}});
 var MCP_PRESETS=[/* v131 需求③：官方端点已核实入档（两家均为品牌官方开放平台、Streamable HTTP + Bearer Token）；添加后即普通服务器条目，可随时删除 */
   {b:'mcd',alias:'mcdonalds',name:'麦当劳 MCP',url:'https://mcp.mcd.cn',
-   desc:'官方端点已预填（mcp.mcd.cn）。到 open.mcd.cn/mcp 手机号登录 → 控制台激活并复制 Token 填入令牌栏即可连接。查菜单、领券、积分、麦乐送 / 到店 / 得来速下单都在；Token 代表你的会员身份，注意保密。该端点未对浏览器放行跨域，需先填上方「跨域中转」。'},
+   purpose:'麦当劳：查菜单、领券、积分、麦乐送/到店/得来速下单',desc:'官方端点已预填（mcp.mcd.cn）。到 open.mcd.cn/mcp 手机号登录 → 控制台激活并复制 Token 填入令牌栏即可连接。查菜单、领券、积分、麦乐送 / 到店 / 得来速下单都在；Token 代表你的会员身份，注意保密。该端点未对浏览器放行跨域，需先填上方「跨域中转」。'},
   {b:'lk',alias:'luckin',name:'瑞幸咖啡 MCP',url:'https://gwmcp.lkcoffee.com/order/user/mcp',
-   desc:'官方端点已预填（gwmcp.lkcoffee.com）。到 open.lkcoffee.com 登录领取 Token 填入令牌栏即可连接。找店、看饮品单、自动配券、下单取餐一条龙；Token 与账号绑定、约一个月有效，严禁泄露。该端点未对浏览器放行跨域，需先填上方「跨域中转」。'},
+   purpose:'瑞幸咖啡：找店、看饮品单、下单、订单与取餐状态',desc:'官方端点已预填（gwmcp.lkcoffee.com）。到 open.lkcoffee.com 登录领取 Token 填入令牌栏即可连接。找店、看饮品单、自动配券、下单取餐一条龙；Token 与账号绑定、约一个月有效，严禁泄露。该端点未对浏览器放行跨域，需先填上方「跨域中转」。'},
   /* v131-p：联网搜索——两家官方公开端点均已实测：允许浏览器跨域（CORS *）、无令牌可用、Streamable HTTP。无需令牌的预设点「添加」直接入列并自动连接 */
   {b:'pl',alias:'parallel',name:'Parallel 联网搜索',url:'https://search.parallel.ai/mcp',noToken:true,
-   desc:'Parallel 官方公开端点（search.parallel.ai），无需令牌。web_search 返回已整理好的网页摘录（多数问题可直接作答），web_fetch 抓取指定网页正文。点「添加」即接入并连接，之后 AI 就能自己上网查资料。公开端点有限流，重度使用可去 parallel.ai 领 API key 填入令牌栏。'},
+   purpose:'Parallel 联网搜索：web_search 搜索网页、web_fetch 抓取网页',desc:'Parallel 官方公开端点（search.parallel.ai），无需令牌。web_search 返回已整理好的网页摘录（多数问题可直接作答），web_fetch 抓取指定网页正文。点「添加」即接入并连接，之后 AI 就能自己上网查资料。公开端点有限流，重度使用可去 parallel.ai 领 API key 填入令牌栏。'},
   {b:'exa',alias:'exa',name:'Exa 联网搜索',url:'https://mcp.exa.ai/mcp',noToken:true,
-   desc:'Exa 官方公开端点（mcp.exa.ai），无需令牌。web_search_exa 语义搜索、结果自带高亮摘要；web_fetch_exa 把网页读成 Markdown。与 Parallel 二选一或一起加都行；有 Exa API key 可填入令牌栏提额。'}
+   purpose:'Exa 联网搜索：web_search_exa 语义搜索、web_fetch_exa 网页转 Markdown',desc:'Exa 官方公开端点（mcp.exa.ai），无需令牌。web_search_exa 语义搜索、结果自带高亮摘要；web_fetch_exa 把网页读成 Markdown。与 Parallel 二选一或一起加都行；有 Exa API key 可填入令牌栏提额。'}
 ];
 function drawMcpPresets(){/* v130 需求①：预设卡——已添加同别名系或被 ✕ 隐藏的不再展示 */
   var box=$('mcp-presets');if(!box)return;box.innerHTML='';
@@ -11115,7 +11131,7 @@ function drawMcpPresets(){/* v130 需求①：预设卡——已添加同别名�
         ab.disabled=true;ab.textContent='连接中';
         await loadMP();
         if(_mp.mcp.servers.some(function(sv){return sv.alias===p.alias})){toast('别名已存在');drawMcpList();return}
-        var nsv={alias:p.alias,url:p.url,token:'',enabled:true,tools:[],status:''};
+        var nsv={alias:p.alias,url:p.url,token:'',purpose:(p.purpose||''),lazy:true,enabled:true,tools:[],status:''};
         _mp.mcp.servers.push(nsv);_mp.mcp.enabled=true;await saveMP();
         try{var cnt=await IBMCP.connect(nsv);toast('已接入 '+p.name+'，拉到 '+cnt+' 个工具')}
         catch(err){nsv.status='bad';toast('已添加但连接失败：'+String((err&&err.message)||err).slice(0,80)+'，稍后点「连接」重试')}
@@ -11184,24 +11200,29 @@ function openMcpEdit(sv){
   $('mcpe-alias').value=sv?sv.alias:'';
   $('mcpe-url').value=sv?sv.url:'';
   $('mcpe-token').value=(sv&&sv.token)?sv.token:'';
+  $('mcpe-purpose').value=(sv&&sv.purpose)?sv.purpose:'';
+  $('mcpe-lazy').value=(sv&&sv.lazy===false)?'full':'lazy';
+
   $('mcpe-del').style.display=sv?'':'none';
   openSheet('sheet-mcp');
 }
 $('mcpe-save').addEventListener('click',async()=>{
   const alias=$('mcpe-alias').value.trim().replace(/[^\w-]/g,'');
   const url=$('mcpe-url').value.trim();
-  const token=$('mcpe-token').value.trim();/* v131 需求③ */
+  const token=$('mcpe-token').value.trim();
+  const purpose=$('mcpe-purpose').value.trim();/* v152-p：用途说明 */
+  const lazy=$('mcpe-lazy').value!=='full';/* v152-p：按需注入，默认 true */
   if(!alias||!url){toast('别名和 URL 都要填');return}
   await loadMP();
   const dup=_mp.mcp.servers.findIndex(s=>s.alias===alias);
   if(_mcpEditIdx===-1){
     if(dup!==-1){toast('别名已存在');return}
-    _mp.mcp.servers.push({alias:alias,url:url,token:token,enabled:true,tools:[],status:''});
+    _mp.mcp.servers.push({alias:alias,url:url,token:token,purpose:purpose,lazy:lazy,enabled:true,tools:[],status:''});
   }else{
     if(dup!==-1&&dup!==_mcpEditIdx){toast('别名已存在');return}
     const sv=_mp.mcp.servers[_mcpEditIdx];
     if(sv.url!==url){sv.tools=[];sv.status=''}
-    sv.alias=alias;sv.url=url;sv.token=token;
+    sv.alias=alias;sv.url=url;sv.token=token;sv.purpose=purpose;sv.lazy=lazy;
   }
   await saveMP();closeSheets();drawMcpList();toast('已保存，点「连接」拉取工具');
 });
