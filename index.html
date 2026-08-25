@@ -3032,6 +3032,9 @@ self.addEventListener(&#x27;fetch&#x27;,function(e){
         <div class="f-group"><label>接入 Token <span class="lb-note">（选填；dashboard 会话令牌，随 Authorization: Bearer 发送）</span></label><input id="xcm-token" type="password" placeholder="心潮念控制台令牌" autocomplete="off"></div>
         <div class="f-group"><label>情绪注入模板 <span class="lb-note">（聊天前注入的情绪行措辞；留空用默认）</span></label><input id="xcm-line-tpl" maxlength="120" placeholder="【角色情绪·心潮】{mood}｜当前想念：{top}"></div>
         <div class="f-group"><label>记忆注入头 <span class="lb-note">（相关记忆块前加一行标题；留空不加）</span></label><input id="xcm-mem-head" maxlength="60" placeholder="【相关记忆】"></div>
+        <div class="f-group"><label>记忆条目模板 <span class="lb-note">（每条记忆的格式；留空用默认「- 标题：内容」）</span></label><input id="xcm-mem-tpl" maxlength="120" placeholder="- {title}：{body}"></div>
+        <p class="hint" style="margin:4px 0 0">情绪模板占位符：{mood} 情绪词｜{top} Top3驱动｜{top1} 最强单项｜{drives} 全部12维｜{day} 星期｜{date} 日期｜{time} 时间。记忆模板：{title} {body} {imp} 重要性 {tags} 标签。</p>
+        <div style="display:flex;gap:8px;margin-top:8px"><button class="btn" id="xcm-tpl-demo" type="button" style="flex:1">填入示例模板</button><button class="btn" id="xcm-tpl-clear" type="button" style="flex:1">清除自定义</button></div>
         <div class="tog"><div class="tog-m"><div class="tog-t">记忆向量化检索</div><div class="tog-s">写入记忆时异步生成向量（OpenAI 兼容 /embeddings），长记忆按语义相似度召回。</div></div><div class="sw2" id="xcm-vect-on"></div></div>
         <div class="f-group"><label>向量 API 地址 <span class="lb-note">（OpenAI 兼容）</span></label><input id="xcm-vect-base" placeholder="https://api.siliconflow.cn/v1"></div>
         <div class="f-group"><label>向量 API Key</label><input id="xcm-vect-key" type="password" placeholder="sk-…" autocomplete="off"></div>
@@ -7766,7 +7769,10 @@ function buildMemBlock(mems,fid,ms,isGroup,groupMemEnabled,userMsg){/* v88-m 第
     return Object.assign({},m,{_score:base*rel*fatigue});
   }).sort((a,b)=>b._score-a._score);
   const mainBudget=Math.floor(budget*0.85);
-  const lineOf=m=>{const body=(m.oneLine||m.summary||m.content||'').replace(/\s+/g,' ').slice(0,clen);return '- '+(m.title||'')+(body?'：'+body:'')};
+  const _memTpl=String((_xcCfg&&_xcCfg.xc&&_xcCfg.xc.memTpl)||'').trim();/* v157-p：记忆条目模板可配置 */
+  const lineOf=m=>{const body=(m.oneLine||m.summary||m.content||'').replace(/\s+/g,' ').slice(0,clen);const title=(m.title||'');const imp=m.importance||'';const tags=(m.tags||[]).join(',');
+    if(_memTpl){const tpl2=_memTpl.replace(/\{title\}/g,title).replace(/\{body\}/g,body).replace(/\{imp\}/g,imp).replace(/\{tags\}/g,tags);return tpl2.trim()||('-' +title+(body?'：'+body:''))}
+    return '- '+title+(body?'：'+body:'')};
   const lines=[];let used=0;const sel=new Set();
   const push=(m,cap)=>{const ln=lineOf(m);if(used+ln.length>cap)return false;lines.push(ln);used+=ln.length+1;sel.add(m.id);return true};
   for(const m of scored){if(!m.pinned)continue;if(!push(m,mainBudget))break}
@@ -11145,7 +11151,7 @@ $('ibt-confirm').addEventListener('click',async()=>{await loadIBT();_ibt.confirm
 async function renderDiyXcMind(){/* v154-p：心潮情绪与记忆增强 配置回填 */
   try{
     const c=await _xcLoad();
-    sw2($('xcm-on'),!!c.xc.on);$('xcm-base').value=c.xc.base||'';$('xcm-token').value=c.xc.token||'';$('xcm-line-tpl').value=c.xc.lineTpl||'';$('xcm-mem-head').value=c.xc.memHead||'';
+    sw2($('xcm-on'),!!c.xc.on);$('xcm-base').value=c.xc.base||'';$('xcm-token').value=c.xc.token||'';$('xcm-line-tpl').value=c.xc.lineTpl||'';$('xcm-mem-head').value=c.xc.memHead||'';$('xcm-mem-tpl').value=c.xc.memTpl||'';
     sw2($('xcm-vect-on'),!!c.vect.on);$('xcm-vect-base').value=c.vect.base||'';$('xcm-vect-key').value=c.vect.key||'';$('xcm-vect-model').value=c.vect.model||'';
     sw2($('xcm-cmp-on'),!!c.cmp.on);$('xcm-cmp-base').value=c.cmp.base||'';$('xcm-cmp-key').value=c.cmp.key||'';$('xcm-cmp-model').value=c.cmp.model||'';$('xcm-cmp-th').value=c.cmp.th||1200;
   }catch(e){}
@@ -11156,7 +11162,7 @@ $('xcm-vect-on').addEventListener('click',async()=>{const c=await _xcLoad();c.ve
 $('xcm-cmp-on').addEventListener('click',async()=>{const c=await _xcLoad();c.cmp.on=!c.cmp.on;sw2($('xcm-cmp-on'),c.cmp.on);await _xcSave();toast(c.cmp.on?'记忆压缩已开启':'记忆压缩已关闭')});
 (function(){
   const binds=[
-    ['xcm-base',(c,v)=>c.xc.base=v.trim()],['xcm-token',(c,v)=>c.xc.token=v.trim()],['xcm-line-tpl',(c,v)=>c.xc.lineTpl=v.trim()],['xcm-mem-head',(c,v)=>c.xc.memHead=v.trim()],
+    ['xcm-base',(c,v)=>c.xc.base=v.trim()],['xcm-token',(c,v)=>c.xc.token=v.trim()],['xcm-line-tpl',(c,v)=>c.xc.lineTpl=v.trim()],['xcm-mem-head',(c,v)=>c.xc.memHead=v.trim()],['xcm-mem-tpl',(c,v)=>c.xc.memTpl=v.trim()],
     ['xcm-vect-base',(c,v)=>c.vect.base=v.trim()],['xcm-vect-key',(c,v)=>c.vect.key=v.trim()],['xcm-vect-model',(c,v)=>c.vect.model=v.trim()],
     ['xcm-cmp-base',(c,v)=>c.cmp.base=v.trim()],['xcm-cmp-key',(c,v)=>c.cmp.key=v.trim()],['xcm-cmp-model',(c,v)=>c.cmp.model=v.trim()],
     ['xcm-cmp-th',(c,v)=>c.cmp.th=Math.max(200,parseInt(v)||1200)]
@@ -11165,7 +11171,15 @@ $('xcm-cmp-on').addEventListener('click',async()=>{const c=await _xcLoad();c.cmp
     const el=$(b[0]);
     el.addEventListener('change',async()=>{const c=await _xcLoad();b[1](c,el.value);if(b[0]==='xcm-cmp-th')el.value=c.cmp.th;await _xcSave();toast('已保存')});
   });
-  $('xcm-test').addEventListener('click',async()=>{
+  $('xcm-tpl-demo').addEventListener('click',async()=>{/* v157-p：一键填入示例 */
+    $('xcm-line-tpl').value='【角色情绪·心潮】{mood}｜{day} {time}｜想念：{top}｜全维：{drives}';
+    $('xcm-mem-head').value='【相关记忆】';
+    $('xcm-mem-tpl').value='- {title}：{body}（重要度{imp}）';
+    const c=await _xcLoad();c.xc.lineTpl=$('xcm-line-tpl').value;c.xc.memHead=$('xcm-mem-head').value;c.xc.memTpl=$('xcm-mem-tpl').value;await _xcSave();toast('已填入示例并保存')});
+$('xcm-tpl-clear').addEventListener('click',async()=>{/* v157-p：清除自定义 */
+    $('xcm-line-tpl').value='';$('xcm-mem-head').value='';$('xcm-mem-tpl').value='';
+    const c=await _xcLoad();c.xc.lineTpl='';c.xc.memHead='';c.xc.memTpl='';await _xcSave();toast('已恢复默认')});
+$('xcm-test').addEventListener('click',async()=>{
     const c=await _xcLoad();
     const need=c.xc&&c.xc.on&&c.xc.base;
     if(!need){toast('请先开启「心潮情绪系统」并填写服务地址');return}
@@ -11174,7 +11188,7 @@ $('xcm-cmp-on').addEventListener('click',async()=>{const c=await _xcLoad();c.cmp
     if(!s){if(out)out.textContent='连接失败：请检查服务地址是否正确、Token 是否有效（服务需公网可达）。';toast('心潮连接失败');return}
     const line=_xcLineFrom(s);
     _xcSnap={t:Date.now(),line:line,raw:s};
-    if(out)out.textContent=line?('✅ 连接成功｜当前情绪：'+line):'✅ 连接成功（当前无 drives 数据）';
+    if(out)out.textContent=line?('✅ 连接成功｜按当前模板注入：'+line):'✅ 连接成功（当前无 drives 数据）';
     toast(line?('心潮已连接：'+line.split('｜')[0]):'心潮已连接');
   });
 })();
@@ -13745,7 +13759,7 @@ _ibEmbedMemAsync(mem);/* v154-p：写入后异步向量化（不阻塞回复） 
 }
 /* ═══ v154-p：心潮情绪 + 记忆向量化/压缩（DIY → 心潮情绪 / 记忆增强） ═══ */
 let _xcCfg=null,_xcSnap={t:0,line:'',raw:null},_xcVecCache={},_xcVecOrder=[],_xcQv=null;/* v155-p：查询向量缓存（buildMemBlock 融合用） */
-function _xcDef(){return{xc:{on:true,base:'https://mcp.43451695.xyz',token:'',mode:'top3',lineTpl:'',memHead:''},vect:{on:false,base:'https://api.siliconflow.cn/v1',key:'',model:'BAAI/bge-m3',mix:0.5},cmp:{on:false,base:'https://api.siliconflow.cn/v1',key:'',model:'deepseek-ai/DeepSeek-V3',th:1200}}}
+function _xcDef(){return{xc:{on:true,base:'https://mcp.43451695.xyz',token:'',mode:'top3',lineTpl:'',memHead:'',memTpl:''},vect:{on:false,base:'https://api.siliconflow.cn/v1',key:'',model:'BAAI/bge-m3',mix:0.5},cmp:{on:false,base:'https://api.siliconflow.cn/v1',key:'',model:'deepseek-ai/DeepSeek-V3',th:1200}}}
 async function _xcLoad(){if(_xcCfg)return _xcCfg;let r=null;try{r=await dbGet('apiSettings','xcMind')}catch(e){}
  _xcCfg=Object.assign(_xcDef(),r||{});!(_xcCfg.xc=Object.assign(_xcDef().xc,_xcCfg.xc||{}));!(_xcCfg.vect=Object.assign(_xcDef().vect,_xcCfg.vect||{}));!(_xcCfg.cmp=Object.assign(_xcDef().cmp,_xcCfg.cmp||{}));return _xcCfg}
 async function _xcSave(){try{await dbPut('apiSettings',_xcCfg)}catch(e){_xcCfg=null}}
@@ -13782,7 +13796,9 @@ function _xcLineFrom(snap){/* v156-p：注入模板可配置（{mood}/{top}/{top
     const mood=sort[0]&&(sort[0].value>=0.75?'高涨':sort[0].value>=0.5?'活跃':sort[0].value>=0.25?'平静':'低落');
     let tpl=String((_xcCfg&&_xcCfg.xc&&_xcCfg.xc.lineTpl)||'').trim();
     if(!tpl)return'【角色情绪·心潮】'+mood+'｜当前想念：'+top;
-    return tpl.replace(/\{mood\}/g,mood).replace(/\{top\}/g,top).replace(/\{top1\}/g,top1);
+    const drives=sort.map(x=>x.label+Math.round(x.value*100)+'%').join('、');
+    const _d=new Date();const _wd=['日','一','二','三','四','五','六'][_d.getDay()];
+    return tpl.replace(/\{mood\}/g,mood).replace(/\{top\}/g,top).replace(/\{top1\}/g,top1).replace(/\{drives\}/g,drives).replace(/\{day\}/g,'周'+_wd).replace(/\{date\}/g,_d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0')).replace(/\{time\}/g,String(_d.getHours()).padStart(2,'0')+':'+String(_d.getMinutes()).padStart(2,'0'))
   }catch(e){return''}}
 async function _xcWarm(){/* 发消息前预取；90s 内用缓存 */
  try{const c=await _xcLoad();if(!(c.xc&&c.xc.on)){_xcSnap={t:0,line:'',raw:null};return}
