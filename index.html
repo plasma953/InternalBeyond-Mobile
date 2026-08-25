@@ -300,6 +300,7 @@ body.theme-infernal .btn{background:linear-gradient(165deg,rgba(165,190,228,0.12
 .btn.mini{padding:6px 14px;font-size:0.72rem}
 .btn:disabled{opacity:0.5}
 .sec-label:first-child{margin-top:4px}
+.xcm-snap-tag{font-size:0.7rem;color:var(--tx2);background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
 .hint{font-size:0.72rem;line-height:1.85;color:var(--tx3);margin-top:6px}
 .plate-title{font-family:var(--serif);font-weight:600;font-size:1.32rem;color:var(--tx);letter-spacing:0.04em}
 .plate-title .cn{font-family:'Noto Sans SC',sans-serif;font-size:0.72rem;color:var(--tx3);letter-spacing:0.16em;margin-left:10px;font-weight:400}
@@ -3047,6 +3048,7 @@ self.addEventListener(&#x27;fetch&#x27;,function(e){
         <p class="hint" id="xcm-test-out" style="margin:10px 0 0">配套可视化前端：xinchaomind.uk（同一账号无需重复配置）。</p>
         <div style="height:10px"></div>
         <button class="btn wide" id="xcm-test">测试连接并读取当前情绪</button>
+        <div id="xcm-snap-panel" style="display:none;margin-top:12px;padding:14px 16px;border-radius:16px;background:var(--panel);border:1px solid var(--panel-line);backdrop-filter:blur(20px) saturate(1.55);box-shadow:var(--glass-shadow)"></div>
       </div>
 <div class="sec-label">AI付（Alipay · Agent Payment）</div><!-- v136-p：②自 API 页 → 工具 迁入（v97-m 任务7 原卡；id 与存储键不变）；默认关闭；B 档——AI 发起请求卡，用户亲手完成支付并回传结果 -->
       <div class="glass card">
@@ -11190,7 +11192,31 @@ $('xcm-test').addEventListener('click',async()=>{
     _xcSnap={t:Date.now(),line:line,raw:s};
     if(out)out.textContent=line?('✅ 连接成功｜按当前模板注入：'+line):'✅ 连接成功（当前无 drives 数据）';
     toast(line?('心潮已连接：'+line.split('｜')[0]):'心潮已连接');
+    _xcRenderSnapshot(s);
   });
+  function _xcRenderSnapshot(s){/* v158-p: 心绪面板——官方前端内容本地化 · IB 风格 */
+    const box=document.getElementById('xcm-snap-panel');if(!box)return;box.style.display='block';
+    const rt=(s&&s.runtime)||{},dv=Array.isArray(s&&s.drives)?s.drives:[];
+    const ig=(s&&s.identity)||{},dl=(s&&s.deliveries)||{},th=(s&&s.thoughts)||{},pm=(s&&s.personality)||{};
+    const lvc={surging:'#e07878',rising:'#d0a44e',present:'#7ab27a',quiet:'#7d92b5'};
+    const lvn={surging:'涌动',rising:'上涨',present:'在场',quiet:'平静'};
+    const idle=Number(rt.idleMinutes);const idleTxt=isFinite(idle)?(idle>=1440?Math.floor(idle/1440)+'天'+Math.round((idle%1440)/60)+'时':Math.round(idle/60)+'时'+idle%60+'分'):'—';
+    const consMap={sleeping:'🌙 沉睡中',awake:'🌞 苏醒中',dreaming:'💭 梦境浮现'};
+    const rows=dv.map(d=>{const p=Math.max(0,Math.min(100,Number(d.percent)||0));const col=lvc[d.level]||'#7d92b5';const lb=String(d.label||d.key||'');
+      return '<div style="display:flex;align-items:center;gap:8px;margin:7px 0"><div style="flex:0 0 118px;font-size:0.78rem;color:var(--tx2);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+lb.replace(/"/g,'"')+'">'+lb+'</div><div style="flex:1;height:9px;border-radius:999px;background:var(--soft);border:1px solid var(--line);overflow:hidden"><div style="width:'+p+'%;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--acc),'+col+')"></div></div><div style="flex:0 0 36px;text-align:right;font-size:0.78rem;color:var(--tx);font-weight:600">'+p+'%</div><div style="flex:0 0 40px;text-align:center;font-size:0.68rem;color:'+col+';border:1px solid '+col+';border-radius:999px;padding:2px 0">'+(lvn[d.level]||'')+'</div></div>';}).join('');
+    const dreams=Array.isArray(s&&s.dreams)?s.dreams.slice(0,3):[];
+    const dreamTxt=dreams.length?dreams.map(d=>String(d.createdAt||'').slice(5,10)+'·清'+Math.round((Number(d.lucidity)||0)*100)+'%').join('，'):'无';
+    box.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div style="font-size:0.86rem;font-weight:600;color:var(--tx)">'+(consMap[rt.consciousness]||'⏳ 状态未知')+'</div><div style="font-size:0.72rem;color:var(--tx3)">'+String(ig.agentName||'心潮')+' · 空闲 '+idleTxt+'</div></div>'
+      +'<div style="font-size:0.72rem;color:var(--tx3);margin:6px 0 2px">12 维当下驱力 · '+(rt.mode||'active')+'</div>'
+      +(rows||'<div style="font-size:0.78rem;color:var(--tx3)">暂无驱力数据</div>')
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">'
+      +'<span class="xcm-snap-tag">念头 '+(Number(th.flashCount)||0)+'/'+(Number(th.obsessionCount)||0)+'</span>'
+      +'<span class="xcm-snap-tag">梦境 '+dreams.length+' 条</span>'
+      +'<span class="xcm-snap-tag">人格内核 '+(pm.available?'已就绪':'未启用')+'</span>'
+      +'<span class="xcm-snap-tag">待传达 '+(dl.pendingAwareness?'是':'否')+'</span>'
+      +'</div>'
+      +(dreams.length?'<div style="margin-top:8px;font-size:0.72rem;color:var(--tx2)">最近梦境：'+dreamTxt+'</div>':'');
+  }
 })();
 var MCP_PRESETS=[/* v131 需求③：官方端点已核实入档（两家均为品牌官方开放平台、Streamable HTTP + Bearer Token）；添加后即普通服务器条目，可随时删除 */
   {b:'mcd',alias:'mcdonalds',name:'麦当劳 MCP',url:'https://mcp.mcd.cn',
