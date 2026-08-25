@@ -1,0 +1,6 @@
+*.bak_sticker_v*
+deploy.sh
+http.log
+scan*.py
+scan*.out
+smoke_r*.js
