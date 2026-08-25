@@ -3030,6 +3030,8 @@ self.addEventListener(&#x27;fetch&#x27;,function(e){
         <div class="tog"><div class="tog-m"><div class="tog-t">心潮情绪系统</div><div class="tog-s">连接心潮念服务，把角色 12 维动态驱力（想念/渴望等）转换为每轮对话的情绪注入行。</div></div><div class="sw2" id="xcm-on"></div></div>
         <div class="f-group" style="margin-top:12px"><label>服务地址 <span class="lb-note">（心潮念 Node 服务根地址，需含 /dashboard/session）</span></label><input id="xcm-base" placeholder="https://mcp.43451695.xyz"></div>
         <div class="f-group"><label>接入 Token <span class="lb-note">（选填；dashboard 会话令牌，随 Authorization: Bearer 发送）</span></label><input id="xcm-token" type="password" placeholder="心潮念控制台令牌" autocomplete="off"></div>
+        <div class="f-group"><label>情绪注入模板 <span class="lb-note">（聊天前注入的情绪行措辞；留空用默认）</span></label><input id="xcm-line-tpl" maxlength="120" placeholder="【角色情绪·心潮】{mood}｜当前想念：{top}"></div>
+        <div class="f-group"><label>记忆注入头 <span class="lb-note">（相关记忆块前加一行标题；留空不加）</span></label><input id="xcm-mem-head" maxlength="60" placeholder="【相关记忆】"></div>
         <div class="tog"><div class="tog-m"><div class="tog-t">记忆向量化检索</div><div class="tog-s">写入记忆时异步生成向量（OpenAI 兼容 /embeddings），长记忆按语义相似度召回。</div></div><div class="sw2" id="xcm-vect-on"></div></div>
         <div class="f-group"><label>向量 API 地址 <span class="lb-note">（OpenAI 兼容）</span></label><input id="xcm-vect-base" placeholder="https://api.siliconflow.cn/v1"></div>
         <div class="f-group"><label>向量 API Key</label><input id="xcm-vect-key" type="password" placeholder="sk-…" autocomplete="off"></div>
@@ -6373,6 +6375,8 @@ async function buildCalBlock(cfg){
     });
   }
   if(!lines.length)return'';
+  const _mh=String((_xcCfg&&_xcCfg.xc&&_xcCfg.xc.memHead)||'').trim();/* v156-p：记忆注入头可配置 */
+  if(_mh)return _mh+'\n'+lines.join('\n');
   var _blk='【临近日程】以下是用户日历中临近的事项，可在合适时自然提起，不要逐条罗列：\n'+lines.join('\n');
   try{if(calPerm(cfg.id)[1])_blk+='\n\n'+_MCAL_NOTE_INSTR}catch(e){}/* fix-r4：有留言权限才附便笺协议（任务 2） */
   return _blk;
@@ -11141,7 +11145,7 @@ $('ibt-confirm').addEventListener('click',async()=>{await loadIBT();_ibt.confirm
 async function renderDiyXcMind(){/* v154-p：心潮情绪与记忆增强 配置回填 */
   try{
     const c=await _xcLoad();
-    sw2($('xcm-on'),!!c.xc.on);$('xcm-base').value=c.xc.base||'';$('xcm-token').value=c.xc.token||'';
+    sw2($('xcm-on'),!!c.xc.on);$('xcm-base').value=c.xc.base||'';$('xcm-token').value=c.xc.token||'';$('xcm-line-tpl').value=c.xc.lineTpl||'';$('xcm-mem-head').value=c.xc.memHead||'';
     sw2($('xcm-vect-on'),!!c.vect.on);$('xcm-vect-base').value=c.vect.base||'';$('xcm-vect-key').value=c.vect.key||'';$('xcm-vect-model').value=c.vect.model||'';
     sw2($('xcm-cmp-on'),!!c.cmp.on);$('xcm-cmp-base').value=c.cmp.base||'';$('xcm-cmp-key').value=c.cmp.key||'';$('xcm-cmp-model').value=c.cmp.model||'';$('xcm-cmp-th').value=c.cmp.th||1200;
   }catch(e){}
@@ -11152,7 +11156,7 @@ $('xcm-vect-on').addEventListener('click',async()=>{const c=await _xcLoad();c.ve
 $('xcm-cmp-on').addEventListener('click',async()=>{const c=await _xcLoad();c.cmp.on=!c.cmp.on;sw2($('xcm-cmp-on'),c.cmp.on);await _xcSave();toast(c.cmp.on?'记忆压缩已开启':'记忆压缩已关闭')});
 (function(){
   const binds=[
-    ['xcm-base',(c,v)=>c.xc.base=v.trim()],['xcm-token',(c,v)=>c.xc.token=v.trim()],
+    ['xcm-base',(c,v)=>c.xc.base=v.trim()],['xcm-token',(c,v)=>c.xc.token=v.trim()],['xcm-line-tpl',(c,v)=>c.xc.lineTpl=v.trim()],['xcm-mem-head',(c,v)=>c.xc.memHead=v.trim()],
     ['xcm-vect-base',(c,v)=>c.vect.base=v.trim()],['xcm-vect-key',(c,v)=>c.vect.key=v.trim()],['xcm-vect-model',(c,v)=>c.vect.model=v.trim()],
     ['xcm-cmp-base',(c,v)=>c.cmp.base=v.trim()],['xcm-cmp-key',(c,v)=>c.cmp.key=v.trim()],['xcm-cmp-model',(c,v)=>c.cmp.model=v.trim()],
     ['xcm-cmp-th',(c,v)=>c.cmp.th=Math.max(200,parseInt(v)||1200)]
@@ -13741,7 +13745,7 @@ _ibEmbedMemAsync(mem);/* v154-p：写入后异步向量化（不阻塞回复） 
 }
 /* ═══ v154-p：心潮情绪 + 记忆向量化/压缩（DIY → 心潮情绪 / 记忆增强） ═══ */
 let _xcCfg=null,_xcSnap={t:0,line:'',raw:null},_xcVecCache={},_xcVecOrder=[],_xcQv=null;/* v155-p：查询向量缓存（buildMemBlock 融合用） */
-function _xcDef(){return{xc:{on:true,base:'https://mcp.43451695.xyz',token:'',mode:'top3'},vect:{on:false,base:'https://api.siliconflow.cn/v1',key:'',model:'BAAI/bge-m3',mix:0.5},cmp:{on:false,base:'https://api.siliconflow.cn/v1',key:'',model:'deepseek-ai/DeepSeek-V3',th:1200}}}
+function _xcDef(){return{xc:{on:true,base:'https://mcp.43451695.xyz',token:'',mode:'top3',lineTpl:'',memHead:''},vect:{on:false,base:'https://api.siliconflow.cn/v1',key:'',model:'BAAI/bge-m3',mix:0.5},cmp:{on:false,base:'https://api.siliconflow.cn/v1',key:'',model:'deepseek-ai/DeepSeek-V3',th:1200}}}
 async function _xcLoad(){if(_xcCfg)return _xcCfg;let r=null;try{r=await dbGet('apiSettings','xcMind')}catch(e){}
  _xcCfg=Object.assign(_xcDef(),r||{});!(_xcCfg.xc=Object.assign(_xcDef().xc,_xcCfg.xc||{}));!(_xcCfg.vect=Object.assign(_xcDef().vect,_xcCfg.vect||{}));!(_xcCfg.cmp=Object.assign(_xcDef().cmp,_xcCfg.cmp||{}));return _xcCfg}
 async function _xcSave(){try{await dbPut('apiSettings',_xcCfg)}catch(e){_xcCfg=null}}
@@ -13770,7 +13774,16 @@ async function _ibMemCompressExecM(cfg,op){/* <ws_mem_compress/> 压缩记忆：
 /* ── 心潮状态：sessions 换 token → /dashboard/api/snapshot → 情绪行 ── */
 async function _xcFetchSnap(){const c=await _xcLoad();if(!(c.xc&&c.xc.on&&c.xc.base))return null;
  try{const base=String(c.xc.base).replace(/\/+$/,'');const _ac1=new AbortController();const _tm1=setTimeout(()=>_ac1.abort(),2500);const r1=await fetch(base+'/dashboard/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:c.xc.token||'',mode:'header'}),signal:_ac1.signal}).finally(()=>clearTimeout(_tm1));if(!r1.ok)return null;const j1=await r1.json();const tok=j1&&(j1.token||'');if(!tok)return null;const _ac2=new AbortController();const _tm2=setTimeout(()=>_ac2.abort(),2500);const r2=await fetch(base+'/dashboard/api/snapshot',{headers:{'Authorization':'Bearer '+tok},signal:_ac2.signal}).finally(()=>clearTimeout(_tm2));if(!r2.ok)return null;return await r2.json()}catch(e){return null}}
-function _xcLineFrom(snap){try{const d=(snap&&snap.drives)||{};const keys=Object.keys(d);if(!keys.length)return'';const sort=keys.map(k=>({k:k,label:(d[k]&&d[k].label)||k,value:Number(d[k].value)||0})).sort((a,b)=>b.value-a.value);const top=sort.slice(0,3).map(x=>x.label+'('+Math.round(x.value*100)+'%)').join('、');const mood=sort[0]&&(sort[0].value>=0.75?'高涨':sort[0].value>=0.5?'活跃':sort[0].value>=0.25?'平静':'低落');return'【角色情绪·心潮】'+mood+'｜当前想念：'+top}catch(e){return''}}
+function _xcLineFrom(snap){/* v156-p：注入模板可配置（{mood}/{top}/{top1}） */
+  try{const d=(snap&&snap.drives)||{};const keys=Object.keys(d);if(!keys.length)return'';
+    const sort=keys.map(k=>({k:k,label:(d[k]&&d[k].label)||k,value:Number(d[k].value)||0})).sort((a,b)=>b.value-a.value);
+    const top=sort.slice(0,3).map(x=>x.label+'('+Math.round(x.value*100)+'%)').join('、');
+    const top1=sort[0]?(sort[0].label+' '+Math.round(sort[0].value*100)+'%'):'';
+    const mood=sort[0]&&(sort[0].value>=0.75?'高涨':sort[0].value>=0.5?'活跃':sort[0].value>=0.25?'平静':'低落');
+    let tpl=String((_xcCfg&&_xcCfg.xc&&_xcCfg.xc.lineTpl)||'').trim();
+    if(!tpl)return'【角色情绪·心潮】'+mood+'｜当前想念：'+top;
+    return tpl.replace(/\{mood\}/g,mood).replace(/\{top\}/g,top).replace(/\{top1\}/g,top1);
+  }catch(e){return''}}
 async function _xcWarm(){/* 发消息前预取；90s 内用缓存 */
  try{const c=await _xcLoad();if(!(c.xc&&c.xc.on)){_xcSnap={t:0,line:'',raw:null};return}
  if(Date.now()-_xcSnap.t<90000)return;const s=await _xcFetchSnap();if(s){_xcSnap={t:Date.now(),line:_xcLineFrom(s),raw:s}}}catch(e){}}
