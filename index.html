@@ -2905,8 +2905,8 @@ self.addEventListener(&#x27;fetch&#x27;,function(e){
       <!-- ── 工具调用 ──（v137-a·v135-p：#5 从「输出与续写」拆出，工具相关设置集中一处；纯挪位，id 与存储键不变） -->
       <div class="sec-label">工具调用</div>
       <div class="card fx-card"><div class="fx-ico"><svg viewBox="0 0 24 24"><path d="M14.5 6.5a4.5 4.5 0 0 0-6.1 5.9L4 16.8V20h3.2l4.4-4.4a4.5 4.5 0 0 0 5.9-6.1L14.6 12.4l-3-3z"/></svg></div>
-        <div class="f-group" style="margin:8px 0 6px"><label>工具连续调用轮数 <span class="lb-note">（默认 2；0 = 关闭续答）</span></label>
-          <div class="sel"><select id="out-tools"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="5">5</option></select></div></div>
+        <div class="f-group" style="margin:8px 0 6px"><label>工具连续调用轮数 <span class="lb-note">（默认 2；0 = 关闭续答；最高 12）</span></label>
+          <div class="sel"><select id="out-tools"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="5">5</option><option value="8">8</option><option value="10">10</option><option value="12">12</option></select>/* v153-p：工具连续调用轮数上限 5→12 */</div></div>
         <div class="f-group" style="margin:10px 0 6px"><label>蓝牙每回复调用上限 <span class="lb-note">（默认 4；0 = 不限）</span></label>
           <div class="sel"><select id="out-btcap"><option value="0">0（不限）</option><option value="2">2</option><option value="4">4</option><option value="6">6</option><option value="10">10</option></select></div></div><!-- v136-p：①两枚上限设置并排绑定（纯挪位，id 与存储键不变） -->
         <p class="hint">连续调用轮数：取数类指令（外部工具 / MCP / 记忆检索 / 定位 天气 手机状态 / 蓝牙读取 / 查看动态等）的结果立即回传，TA 在同一条回复后接着作答、并可再次调用，最多此轮数；动作类指令（写记忆 / 留便笺 / 写日历 / 蓝牙写入 / 发动态 / 播放器等）不触发续答，成败随你的下一条消息回传；设为 0 时取数类同样随下一条消息回传。蓝牙上限：同一条回复内 bt_read＋bt_write 的合计次数，超出的不执行并告知 TA；bt_status 查询不计数；开启「调用确认」后你点「执行」的调用不受限。<!-- v136-p：①文案精简合并（v84-m r1 / v134-a / v137-a·v135-p：#5 原两段说明并轨） --></p>
@@ -8799,7 +8799,8 @@ async function _runToolLoopStateM(st){
     const onlyHelp=pending.length?pending.every(r=>r.type==='help'):false;/* v124-p：#1 纯信箱续答按普通轮计入 toolRounds 配额 */
     const cap=st.wsMode?st.wsCap:st.toolCap;
     if(!onlyHelp&&st.used>=cap){st.waitingConfirm=false;_wsLoopStateM.delete(st.rootAm.id);return}
-    st.h=st.h.concat([{role:'assistant',content:st.stepTxt},{role:'user',content:'［系统：以下为你刚才调用的工具/数据结果，请据此继续当前任务；仍可继续调用，但不要重复相同参数的调用。］'}]);
+    let _prevCallTip='';try{const _rc9=((st.lastAm&&st.lastAm.wsResults)||[]);const _cl9=[];_rc9.forEach(function(rX){if(rX&&rX.type==='tool'&&/^mcp\./i.test(String(rX.name||''))&&typeof rX.ok==='boolean')_cl9.push('- '+rX.name+'：'+(rX.ok?'成功':'失败'))});if(_cl9.length)_prevCallTip='\n［上一轮已调用 MCP 工具：\n'+_cl9.join('\n')+'\n（除非用户明确要求，请勿用相同参数重复调用）］';}catch(e){}
+st.h=st.h.concat([{role:'assistant',content:st.stepTxt},{role:'user',content:'［系统：以下为你刚才调用的工具/数据结果，请据此继续当前任务；仍可继续调用，但不要重复相同参数的调用。］'+_prevCallTip}]);/* v153-p：上一轮已调用清单提示，防重复调用 */
     var _gq9T=null;const _fed9=await feedToolResults(st.h,st.cfg,[st.rootAm,st.lastAm]);/* fix-m①：取回执 *//* v124-p：#4 后台续答自证——切窗后本会话消息已不在 _msgs 里，把根/末条 AI 消息直接递给回传器：结果不丢，不再出现「宣称结果如下却空手」的续答 */
     try{if(_gwFeedQ.length){const _gq9=_gwFeedQ.filter(x=>x.fid===st.cfg.id);_gwFeedQ=_gwFeedQ.filter(x=>x.fid!==st.cfg.id);_gq9T=_gq9;/* fix-m① */if(_gq9.length){for(let j9=st.h.length-1;j9>=0;j9--){if(st.h[j9].role==='user'){st.h[j9].content+='\n\n【调取结果】\n'+_gq9.map(x=>x.text).join('\n');break}}}}}catch(e){}/* v124-p：#1 出队注入续答轮（user 位）；已出队条目不会再走下一条消息的 tails 径，无重复 */
     let t2='',u2=null;try{const r2=await callAIC(st.cfg,st.h,st.sys,()=>{},st.signal||null,st.pa);t2=(r2&&r2.t)||'';u2=(r2&&r2.u)||null}catch(e){if(e&&e.name==='AbortError'){try{toast('已停止')}catch(e9){}}/* v132-p：续答轮接上停止信号——此前这一轮传的是 null，停止键按了没反应，服务商一卡整条会话就锁在「发送中」直到刷新 */try{if(_fed9)_fed9.restore()}catch(e9){}try{if(_gq9T&&_gq9T.length)_gwFeedQ=_gq9T.concat(_gwFeedQ)}catch(e9){}break}
@@ -8820,7 +8821,7 @@ async function _runToolLoopStateM(st){
 }
 async function _mToolLoop(cfg,pa,sys,hist,lastTxt,lastAm,ctx){/* ICode Skill：HELP 免费；工作区连续步骤合并在同一 AI 气泡 */
   await loadOUT();
-  const toolCap=Math.max(0,Math.min(5,parseInt(_out.toolRounds!=null?_out.toolRounds:2)||0));
+  const toolCap=Math.max(0,Math.min(12,parseInt(_out.toolRounds!=null?_out.toolRounds:2)||0));/* v153-p：上限 5→12 */
   const wsMode=!!(((lastAm&&lastAm.wsResults)||[]).some(r=>r&&WORKSPACE_EXEC_M[r.type]));
   const wsCap=Math.max(0,Math.min(6,parseInt(_out.wsRounds!=null?_out.wsRounds:3)||0));
   const st={cfg:cfg,pa:pa,sys:sys,h:hist.slice(),stepTxt:lastTxt,lastAm:lastAm,rootAm:lastAm,ctx:ctx,toolCap:toolCap,wsCap:wsCap,wsMode:wsMode,used:0,guard:0,waitingConfirm:false,signal:(ctx&&ctx.signal)||null};/* v132-p：+signal */
@@ -8861,7 +8862,19 @@ async function feedToolResults(hist,cfg,extra){
         if(/(payH5Url|payOrderUrl|payOrderQrCodeUrl|payUrl|payLink|qrCodeUrl|cashierUrl)/i.test(rp9)||(/create|submit|place|pay/i.test(String(r9.name||''))&&/(orderId|orderNo|订单号|payId)/i.test(rp9)))memo9.push('- [此前已回传的关键结果备忘·勿因此重复调用] 工具「'+(r9.name||'')+'」：'+_ibCut(rp9,4000));
       });
     });
-    memo9.slice(-2).forEach(x9=>pend.push(x9));
+    memo9.slice(-2).forEach(x9=>pend.push(x9));/* v153-p：已调用清单见下 */
+  }catch(e){}
+  try{/* v153-p：已调用清单——回传时把近 30 条内已执行（含已 fed）的 MCP 调用列给 AI，防止下一轮忘记已调用而重复相同操作 */
+    const _cl9=[];seenM9.forEach(mm9=>{
+      if(!mm9||mm9.role==='user'||!Array.isArray(mm9.wsResults))return;
+      if(cfg&&mm9.friendId!==cfg.id)return;
+      mm9.wsResults.forEach(r9=>{
+        if(!(r9&&r9.type==='tool'&&/^mcp\./i.test(String(r9.name||''))&&typeof r9.ok==='boolean'))return;
+        const line9='- '+r9.name+'：'+(r9.ok?'成功':'失败');
+        if(_cl9.indexOf(line9)===-1)_cl9.push(line9);
+      });
+    });
+    if(_cl9.length)pend.push('［系统：本对话近期已调用过的 MCP 工具清单（除非用户明确要求，否则勿用相同参数重复调用）：\n'+_cl9.slice(-12).join('\n')+'］');
   }catch(e){}
   try{/* v77-m：查看动态附图回注——有视觉能力的 AI 下一条消息真实收到用户配图；无视觉只见文本，不报错 */
     if(cfg&&_bxViewImgs.length){
@@ -10668,7 +10681,7 @@ try{var _omt2=$('out-maxtok');if(_omt2){_omt2.addEventListener('change',async fu
 /* v133-p：续答触发范围 chips——点亮/熄灭即存 outputSettings.toolTrig（合并写同一条记录） */
 function _outTrigPaint(){try{var box=$('out-trig');if(!box)return;var t=(_out&&_out.toolTrig)||{};box.querySelectorAll('.btn[data-k]').forEach(function(b){b.classList.toggle('on',t[b.getAttribute('data-k')]!==false)})}catch(e){}}
 try{var _otg=$('out-trig');if(_otg){loadOUT().then(_outTrigPaint);_otg.addEventListener('click',async function(ev){var b=ev.target.closest('.btn[data-k]');if(!b)return;await loadOUT();var k=b.getAttribute('data-k');var t=Object.assign({},_out.toolTrig||{});t[k]=(t[k]===false);_out.toolTrig=t;_outTrigPaint();try{await dbPut('apiSettings',_out)}catch(err){console.warn('[IB] outputSettings 保存失败：',err)}toast(t[k]===false?'已关闭该类的续答：结果随下一条消息回传':'已恢复该类的续答')})}}catch(e){}
-try{var _ot=$('out-tools');if(_ot){loadOUT().then(function(){_ot.value=String(_out.toolRounds!=null?_out.toolRounds:2)});_ot.addEventListener('change',async e=>{await loadOUT();_out.toolRounds=Math.max(0,Math.min(5,parseInt(e.target.value)||0));try{await dbPut('apiSettings',_out)}catch(err){console.warn('[IB] outputSettings 保存失败：',err)}/* v104-m：修错库 settings→apiSettings（库内无 settings store，原空 catch 吞错致改值不持久化），并补失败日志 */})}}catch(e){}/* v84-m r1：工具连续调用轮数（任务 1） */
+try{var _ot=$('out-tools');if(_ot){loadOUT().then(function(){_ot.value=String(_out.toolRounds!=null?_out.toolRounds:2)});_ot.addEventListener('change',async e=>{await loadOUT();_out.toolRounds=Math.max(0,Math.min(12,parseInt(e.target.value)||0))/* v153-p：上限 5→12 */;try{await dbPut('apiSettings',_out)}catch(err){console.warn('[IB] outputSettings 保存失败：',err)}/* v104-m：修错库 settings→apiSettings（库内无 settings store，原空 catch 吞错致改值不持久化），并补失败日志 */})}}catch(e){}/* v84-m r1：工具连续调用轮数（任务 1） */
 try{var _obc=$('out-btcap');if(_obc){loadOUT().then(function(){_obc.value=String(_out.btCap!=null?_out.btCap:4)});_obc.addEventListener('change',async e=>{await loadOUT();_out.btCap=Math.max(0,Math.min(10,parseInt(e.target.value)||0));try{await dbPut('apiSettings',_out)}catch(err){console.warn('[IB] outputSettings 保存失败：',err)}})}}catch(e){}/* v137-a·v135-p：#5 蓝牙每回复上限 */
 try{var _iwr=$('ic-ai-rounds');if(_iwr){loadOUT().then(function(){_iwr.value=String(_out.wsRounds!=null?_out.wsRounds:3)});_iwr.addEventListener('change',async function(){await loadOUT();_out.wsRounds=Math.max(0,Math.min(6,parseInt(_iwr.value)||0));try{await dbPut('apiSettings',_out);toast('ICode 连续操作已设为 '+_out.wsRounds+' 次')}catch(e){toast('保存失败')}})}}catch(e){}/* ICode Skill：工作区独立连续轮数，HELP 不计 */
 (async function(){try{await loadMP();var _pw=_mp.pwa||{};
