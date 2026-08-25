@@ -11,7 +11,7 @@
 <!-- v147-p 修订单（MCP 下单链专修；本轮其余条目属另一端专属模块，-p 线无涉）：①工具 schema 完整回传——buildToolsBlock 原先只给 AI 看 120 字描述＋裸参数名，类型/枚举/嵌套/字段说明全丢，麦当劳/瑞幸这类多步下单流程只能靠参数名瞎猜；现描述放宽至 2000 字并附完整 inputSchema JSON（单工具 3000 字安全截断兜底），connect 落库 description 上限 600→6000（已连服务器需在 MCP 卡重连一次刷新）。②截断链整治——工具结果 runToolAt 1200 / 回传 700 两刀退役，统一 12000 并改 _ibCut 安全截断（不从 emoji 等代理对中间切开产生乱码、截断必明示）：createOrder 的支付链接/orderDetail 常在千字之后，此前一刀下去支付信息全军覆没——「订单号出来了就是找不到订单没法付款」的直接根子；菜单看不全同根同修。③_extract 补读 structuredContent（MCP 2025-06-18 CallToolResult 标准字段）——原实现只读 content、结构化结果整个扔掉。④品牌卡解析重写——_mcpBrandParse 支持 {success,code,data:{…}} 信封逐层下钻（≤4 层）＋全树有界深搜，新认 payH5Url/payOrderUrl/payOrderQrCodeUrl 等支付字段，卡面新增「去支付/支付二维码」按钮（点按不触发展开），说明文档混排围栏 JSON 也能捞；解析不动但文本含支付链接时同样给按钮。⑤关键结果备忘——含订单/支付字段的 MCP 结果此前 fed=true 一轮即失忆，现窗口期内把最近 2 条这类原文以备忘持续注入（fed 记账不动）。⑥AI付 复核：不走 MCP、不经截断链、_gwFeedQ 通道无 fed 失忆——无同类问题，零改动。⑦版本联动 v147-p。 -->
 <!-- v146-p 修订单：①相遇纪念卡明亮态回暖「晨雾蓝」——上一版「月光水银」的石墨蓝灰在白卡上偏暗、观感发怪（用户截图对照旧版浅蓝款）：明亮态改回界面同族浅蓝——主线/外晕 #95a1b0→#a9bcd6、液体 #5d6b7d→#7f99ba（饱和 ~29%、明度 ~61%，不艳也不沉），主线不透明度 .72→.85 恢复旧版那样清晰的一笔；头像玻璃带与进度条液柱同族换浅蓝（rgba(150,172,204,·) / #c8d5e6→#8ba3c2 渐变）。暗色态用户已认可，一字节不动。②「按日期查看」日历右上角按钮重叠根修——主题浮球 .theme-drop 与会话双滑杆钮 #chat-side-btn 是 body 级 fixed(z38)，而 #cvcal(z45) 关在 #conv(z35) 的堆叠上下文里被封顶，两枚浮球必然盖到日历头部「今天」一带；现打开日历给 body 挂 cvcal-open、按 on-sub 同款把两钮 display:none，cvcalClose 先摘类再判空、任何关闭路径不残留。③版本联动 v146-p。本轮其余条目属另一端专属模块，-p 线无涉。 -->
 <!-- InternalBeyond Mobile v145-p · 双层根修与低饱和重制轮（英雄区方框投影双层分离根修 / 相遇纪念卡低饱和「月光水银」重制 / MCP 浏览器版独立与边界整治） -->
-<!-- v161-p · 心潮视界驾驶舱：记忆视界升级为心潮念综合驾驶舱（情绪驱力图谱 + 梦境时序流 + OB 记忆接管）；Chat 侧栏「视界·心潮驾驶舱」无缝跳转-原位返回；OB 开启时记忆写入/读取全面 OB Only（本地记忆库下线） -->
+<!-- v161-p · 心潮•念：记忆视界升级为心潮念综合视界（情绪驱力图谱 + 梦境时序流 + OB 记忆接管）；Chat 侧栏「心潮•念」无缝跳转-原位返回；OB 开启时记忆写入/读取全面 OB Only（本地记忆库下线） -->
 <!-- v145-p 修订单：①英雄区方形投影终修——v146 字效（渐变玻璃字面＋三层贴形投影）观感原样保留，实现改「双层分离」：字面渐变从 .tp-time 整体裁切下放到 >span/>i 子元素逐字符裁切（180deg 纯纵向渐变，两种裁法逐像素等价），三层投影从 filter:drop-shadow 移入新增影层 .tp-sh（与本体同构的隐形副本，text-shadow 承载、z-index:-1 垫在 .tp-time 自有堆叠上下文最底、tickClock 同步 tp-hh2/tp-mm2）。至此渐变裁切元素不再挂任何 filter/text-shadow：filter×background-clip:text 在移动端 Chromium/WebView 渲成整块矩形（v143-p 的判断，方框真凶）与 text-shadow 盖住渐变字面发黑（v144-p 的判断）本是「面与影同挂一个元素」这同一处结构的两个症状——拆开后同时消失；桌面浏览器两种写法都渲染正常，故上一轮的无头核对看不出方框。暗色实字分支随结构补写子元素实色 fill、影层隐藏，v143-p 收紧的暗色贴形投影原样；冒号 <i> 自带背景后，v99-m 记录的「透明字身＋无背景＋opacity 分组被画空」三条件不再凑齐。②相遇纪念卡低饱和重制（用户定向：不要高饱和，设计自定）——「月光水银」方案：明亮态主线/外晕 #6f92c6→#95a1b0（雾岩灰蓝，HSL 饱和 ~10%）、液体 #4a86d4→#5d6b7d（石墨蓝灰 ~15%）；暗色态 #8db0d8/#eef5ff→#aab5c2/#e9eef4（银灰月光）；各层不透明度与发光晕整体收敛，白色高光短段 l-glint 提为主角——层次改由明度差与玻璃高光撑起，不靠色彩浓度。头像玻璃带撤 var(--acc) 着色改中性磨砂灰（明暗两套），进度条液柱撤强调色渐变与外发光、改石墨灰蓝渐变＋暗色银灰款——卡内大面积图形全族去饱和，仅保留「&」与倒计时数字等文字小点缀的强调色。轨道几何、爱心路径、8.4s 流速、reduced-motion 口径零改动。③MCP 边界整治（浏览器版独立）——本文件为公开部署版、只面向浏览器环境：_post 传输层移出另一端专属分支、退为「fetch → 跨域中转」双级（行为对浏览器用户逐字节等价）；「跨域中转」栏 hint、列表 hint、两张预设卡描述、失败提示与 GUIDE → DIY 的 MCP 段落全部改为纯浏览器口径；历史修订单（v143-p / v144-p 头注）中涉及另一端实现细节的句段同轮改写。两端 MCP 文案自此分开维护。④配套升级版中转 cors-relay-worker-v2.js（独立文件，部署到 Cloudflare Worker，不放进本仓库——GitHub Pages 是静态托管、不会执行它）：目标主机白名单＋可选口令 ?k=（填栏写成 https://xxx.workers.dev/?k=口令&u=，现有拼接逻辑直接支持）；预检回显 Access-Control-Request-Headers 并显式列出 authorization——Fetch 规范下 Allow-Headers:* 不覆盖 Authorization 头，旧版 worker 对带令牌请求预检必败（实用性 BUG）；转发响应剥 content-encoding / content-length。⑤GUIDE 按用户要求本轮除 ③ 的 MCP 段落边界改写外未动（内嵌教程仍为旧版 worker 代码，待解禁后同步）。⑥版本联动 v145-p。 -->
 <!-- InternalBeyond Mobile v144-p · 回退与明亮态修缮轮（英雄区字效回退 v146 原样 / 相遇纪念卡明亮模式流光重新可见） -->
 <!-- v144-p 修订单：①英雄区「字体发黑」根修——.tp-time 走 background-clip:text ＋ -webkit-text-fill-color:transparent，字面颜色其实来自背景层，而 text-shadow 的绘制顺序在背景层之上、字形之下；v143-p 把 filter:drop-shadow 换成 text-shadow 后，阴影直接盖住白→冰透的渐变字面，整块字发灰发黑（用户截图实证）。现明亮分支三层阴影回退 v146 原样（filter:drop-shadow），日期行 .sbh-date 的字重/字号/字距一并回退（属字效改动，且 v86-m r5 已因改错该行返工过一次）。保留上轮排版项：时刻字号 clamp(4.35rem,17.8vw,6.1rem)、行高 0.96、.sb-hero padding 18/12、body.vzh-ios .sbh-top 顶距 6px、锁屏时刻随动、.tp-time small 1.06rem。保留上轮暗色远影收紧（0 9px 24px → 0 1.5px 3.5px / 0 4px 9px）——那才是英雄区「方形投影」的真凶，明亮分支本无此病（v98-m 已收紧过）。②相遇纪念卡明亮模式看不清根修——液团 l-liq / 拖尾 l-flow2 / 亮头 l-flow 三层在明暗两态共用 --caG:#dcebff（近白），压在白色卡面上等于隐形；l-halo(.12) 与白色 l-tube(.16) 在白底同样不可见，只剩 l-base 一根细线（用户截图实证）。现分层色值与不透明度改按主题分流的变量组（--caL/--caG/--caGs/--caHi/--caHaloO/--caTubeO/--caBaseO/--caLiqO/--caTailO/--caHeadO/--caGlintO）：明亮走「深色液体＋白色玻璃壁高光」，层次由明暗差撑起（白底上发光物理性无效），并新增 l-glint 白色高光短段贴亮头同轨（领先 0.8/100 相位），读出玻璃管里的水而非一截深色划痕；暗色态数值沿用 v143-p，一行不动。③（另一端专属条目——v145-p 边界整治：相关代码与描述不再进入公开文件。） -->
@@ -5562,7 +5562,7 @@ function navTo(p){
   showSec();
   window.scrollTo(0,0);
 }
-/* ═══ v161-p：心潮视界驾驶舱——无缝跳转 / 原位返回（全局钩子） ═══ */
+/* ═══ v161-p：心潮•念——无缝跳转 / 原位返回（全局钩子） ═══ */
 window._vzNavBack={sec:'list',convOpen:false};
 window._xzJump=function(){
   try{
@@ -5583,11 +5583,11 @@ window._xzJumpBack=function(){
     if(cv&&window._vzNavBack.convOpen){cv.classList.add('open');document.body.classList.add('on-conv')}
   }catch(e){}
 };
-(function(){/* Chat 侧栏注入「视界 · 心潮驾驶舱」入口 */
+(function(){/* Chat 侧栏注入「心潮•念」入口 */
   try{
     var ops=document.getElementById('cs-ops');if(!ops||document.getElementById('cs-viz-jump'))return;
     var it=document.createElement('div');it.className='cs-item';it.id='cs-viz-jump';
-    it.innerHTML='<svg viewBox="0 0 24 24"><path d="M3 12h4l2.5-6 4 10 2.5-4H21"/></svg><span><b class="cs-cn">视界 · 心潮驾驶舱</b></span>';
+    it.innerHTML='<svg viewBox="0 0 24 24"><path d="M3 12h4l2.5-6 4 10 2.5-4H21"/></svg><span><b class="cs-cn">心潮•念</b></span>';
     it.addEventListener('click',function(){
       try{var cs=document.getElementById('chat-side');if(cs)cs.classList.remove('open')}catch(e){}
       if(window._xzJump)window._xzJump();
@@ -11285,7 +11285,7 @@ $('xcm-test').addEventListener('click',async()=>{
       +'</div>'
       +(dreams.length?'<div style="margin-top:8px;font-size:0.72rem;color:var(--tx2)">最近梦境：'+dreamTxt+'</div>':'');
   }
-  window._xcRenderSnapshot=_xcRenderSnapshot;/* v161-p：跨模块桥——视界驾驶舱复用快照渲染 */
+  window._xcRenderSnapshot=_xcRenderSnapshot;/* v161-p：跨模块桥——心潮•念复用快照渲染 */
 })();
 var MCP_PRESETS=[/* v131 需求③：官方端点已核实入档（两家均为品牌官方开放平台、Streamable HTTP + Bearer Token）；添加后即普通服务器条目，可随时删除 */
   {b:'mcd',alias:'mcdonalds',name:'麦当劳 MCP',url:'https://mcp.mcd.cn',
@@ -19397,13 +19397,13 @@ function _renderViz(){
       return '<span><i class="viz-dot" style="background:'+DC[d]+'"></i>'+d+'</span>'}).join('')
       +'<span class="vl-right">'+mems.length+' 条记忆</span>';
     _vzHeat();
-    _vizXcRender();/* v161-p：心潮驾驶舱随视界刷新 */
+    _vizXcRender();/* v161-p：心潮•念随视界刷新 */
   });
 }
 SEC_RENDER['memory:viz']=_renderViz;
 
-/* ═══ v161-p：心潮视界驾驶舱——感知心潮念实时心智（驱力/梦境）+ OB 记忆接管 ═══ */
-function _vizXcEnsure(){/* 注入驾驶舱 DOM（幂等） */
+/* ═══ v161-p：心潮•念——感知心潮念实时心智（驱力/梦境）+ OB 记忆接管 ═══ */
+function _vizXcEnsure(){/* 注入心潮•念卡片 DOM（幂等） */
   var wrap=document.getElementById('viz-xc-cockpit');
   if(wrap)return wrap;
   var hero=document.querySelector('#sec-memory-viz .viz-hero');
@@ -19411,9 +19411,9 @@ function _vizXcEnsure(){/* 注入驾驶舱 DOM（幂等） */
   wrap=document.createElement('div');wrap.id='viz-xc-cockpit';
   wrap.innerHTML=
     '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 2px 0">'
-    +'<div class="sec-label" style="margin:0;flex:1">心潮驾驶舱<span id="viz-xc-live" style="margin-left:8px;font-size:0.7rem;color:var(--tx3);letter-spacing:0"></span></div>'
+    +'<div class="sec-label" style="margin:0;flex:1">心潮•念<span id="viz-xc-live" style="margin-left:8px;font-size:0.7rem;color:var(--tx3);letter-spacing:0"></span></div>'
     +'<button class="btn" id="viz-xc-back" style="flex:0 0 auto;padding:6px 12px">← 返回对话</button></div>'
-    +'<div class="card"><div id="viz-xc-body"><p class="hint">驾驶舱装载中…</p></div></div>'
+    +'<div class="card"><div id="viz-xc-body"><p class="hint">心潮•念装载中…</p></div></div>'
     +'<div class="sec-label" id="viz-xc-dream-label" style="display:none">梦境时序流</div>'
     +'<div class="card" id="viz-xc-dream-card" style="display:none"><div id="viz-xc-dreams"></div></div>'
     +'<div class="sec-label" id="viz-xc-ob-label" style="display:none">心潮念 · 记忆接管</div>'
@@ -19443,7 +19443,7 @@ function _vizDreamFlow(s){/* 梦境时序流（时间倒序） */
   }).join('');
   box.innerHTML='<div style="font-size:0.72rem;color:var(--tx3);margin:0 0 2px">按时间倒序 · 最近 '+dreams.length+' 条</div>'+rows;
 }
-function _vizXcRender(){/* 驾驶舱渲染——随视界刷新 */
+function _vizXcRender(){/* 心潮•念渲染——随视界刷新 */
   var wrap=_vizXcEnsure();if(!wrap)return;
   var xcOn=!!(typeof _xcCfg!=='undefined'&&_xcCfg&&_xcCfg.xc&&_xcCfg.xc.on&&_xcCfg.xc.base);
   var obOn=(typeof _xcoOn==='function')?_xcoOn():false;
