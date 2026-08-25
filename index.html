@@ -576,6 +576,10 @@ body.theme-infernal .cv-stk-cell{background:rgba(24,33,58,0.5)}
 .cv-stk-cell img{max-width:40px;max-height:40px;object-fit:contain;border-radius:6px}
 .cv-stk-cell .cv-stk-nm{font-size:.58rem;color:var(--tx2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.1}
 .chat-sticker img{max-width:5.2em;max-height:5.2em;vertical-align:middle;border-radius:.3em}
+/* v1xx-p：触发回复按钮（AIVP pendingGenerate 模型——发送后不自动回复，按钮/收起键盘触发） */
+.cv-trigger{color:var(--acc,#4a7dff);font-size:1.05rem}
+.cv-trigger.pulse{animation:cvtrig 1.2s ease-in-out infinite}
+@keyframes cvtrig{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
 #cv-auto-tip{position:absolute;right:12px;bottom:calc(80px + var(--sab));z-index:55;background:rgba(20,30,55,0.82);color:#fff;font-size:0.72rem;padding:5px 12px;border-radius:12px;pointer-events:none}
 body.theme-infernal #cv-auto-tip{background:rgba(10,16,32,0.85)}
 /* v2xx-p：表情包协议渲染——[表情包:名称] 文本标签在渲染层动态解析为 sticker 节点（对齐 AIVP StickerBubble） */
@@ -3412,7 +3416,8 @@ self.addEventListener(&#x27;fetch&#x27;,function(e){
     <button class="cv-mini" id="cv-plus" aria-label="附件"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
     <button class="cv-mini" id="cv-sticker" aria-label="表情包"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 14.2a4.4 4.4 0 0 0 7 0M8.8 9.4h.01M15.2 9.4h.01"/></svg></button>
     <textarea id="cv-ta" rows="1" placeholder="输入消息…"></textarea>
-    <button class="cv-mini" id="cv-mic" aria-label="语音消息"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+    <button class="cv-mini" id="cv-mic" aria-label="语音消息"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="14" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+    <button class="cv-mini cv-trigger" id="cv-trigger" hidden aria-label="触发回复">⚡</button>
     <button class="send-btn" id="cv-send"><svg viewBox="0 0 24 24"><path d="M4 12h13M13 6l6 6-6 6"/></svg></button>
   </div>
   <div id="cv-selbar" class="glass">
@@ -6729,6 +6734,7 @@ async function openConv(cfg,thread){
   }catch(e){}
   drawConv();
   _syncSendMirror();
+  _pendGenInit();/* v1xx-p：进/切换会话按现场重建「触发回复」按钮状态 */
   if(!cfg._group)setTimeout(()=>{maybeSummarizeM(cfg,_activeThread?_activeThread.id:null).catch(()=>{})},300);
 }
 async function loadThreadsBar(cfg){
@@ -7551,7 +7557,9 @@ let _stkPacks=[],_stkUrlBy={},_stkCurPack=null;
 async function _stkLoadAll(){
   try{_stkPacks=await dbGetAll('stickerPacks')}catch(e){_stkPacks=[]}
   _stkUrlBy={};
-  _stkPacks.forEach(p=>{(p.stickers||[]).forEach(s=>{if(s&&s.dataUrl)_stkUrlBy[s.name]=s.dataUrl})});
+  _stkPacks.forEach(p=>{(p.stickers||[]).forEach(s=>{
+    if(s&&(s.dataUrl||s.externalUrl))_stkUrlBy[s.name]=s.dataUrl||s.externalUrl;
+  })});
 }
 function _stkFind(name){return _stkUrlBy[name]||''}
 function _stkNewId(prefix){return prefix+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)}
@@ -7579,6 +7587,33 @@ function _stkCompress(blob){
     img.onerror=()=>{URL.revokeObjectURL(url);resolve('')};
     img.src=url;
   });
+}
+/* 链接批量导入（AIVP BatchAddStickerDialog 同款解析：每行「名称: URL」或纯 URL；
+   名称留空用链接文件名；http/https 校验；重名自动加 (2) 后缀） */
+const _STK_URL_RE=/https?:\/\/[^\s，。；;]+/i;
+async function _stkImportUrls(text){
+  if(!_stkCurPack){toast('先点「＋新建」创建表情包');return}
+  const pack=_stkPacks.find(p=>p.id===_stkCurPack);if(!pack)return;
+  const used=new Set((pack.stickers||[]).map(s=>s.name));
+  let ok=0;
+  (text||'').split(/\r?\n/).forEach((line,idx)=>{
+    const t=line.trim();if(!t)return;
+    const m=t.match(_STK_URL_RE);if(!m)return;
+    let url=m[0].trim().replace(/[，。；;]+$/g,'');
+    try{const u=new URL(url);if(u.protocol!=='http:'&&u.protocol!=='https:')return;url=u.toString()}catch(e){return}
+    let nm=t.slice(0,m.index).trim().replace(/[:：\s]+$/g,'');
+    if(!nm){try{const p=new URL(url).pathname;nm=decodeURIComponent(p.split('/').filter(Boolean).pop()||'').replace(/\.[^.]+$/,'')}catch(e){nm=''}nm=nm||('表情'+(idx+1))}
+    nm=nm.trim().slice(0,30)||('表情'+(idx+1));
+    let base=nm,i=2;while(used.has(nm)){nm=base+'('+i+')';i++}
+    used.add(nm);
+    pack.stickers=pack.stickers||[];
+    pack.stickers.push({id:_stkNewId('stk'),name:nm,externalUrl:url});
+    ok++;
+  });
+  if(!ok){toast('未识别到可用图片 URL');return}
+  await _stkSave(pack);await _stkLoadAll();
+  _stkPanelBuild();
+  toast('已导入 '+ok+' 张（链接）');
 }
 /* 批量导入到当前包：名=文件名去扩展名，重名自动加 (2) 后缀 */
 async function _stkImport(files){
@@ -7647,9 +7682,15 @@ async function _stkPanelBuild(){
   grid.appendChild(tabs);
   /* 操作行 */
   const ops=document.createElement('div');ops.className='cv-stk-ops';
-  const imp=document.createElement('div');imp.className='cv-stk-btn';imp.textContent='⇪ 导入图片（可多选）';
+  const imp=document.createElement('div');imp.className='cv-stk-btn';imp.textContent='⇪ 图片';
   imp.addEventListener('click',()=>{const fi=document.getElementById('cv-stk-file');if(fi)fi.click()});
   ops.appendChild(imp);
+  const impu=document.createElement('div');impu.className='cv-stk-btn';impu.textContent='⇪ 链接批量导入';
+  impu.addEventListener('click',()=>{
+    const txt=prompt('每行一条图片URL（可写「名称: URL」，名称留空则用链接文件名）');
+    if(txt)_stkImportUrls(txt);
+  });
+  ops.appendChild(impu);
   const del=document.createElement('div');del.className='cv-stk-btn danger';del.textContent='删除当前包';
   del.addEventListener('click',()=>{
     const pk=_stkPacks.find(p=>p.id===_stkCurPack);if(!pk)return;
@@ -7702,12 +7743,20 @@ document.addEventListener('click',e=>{
   p.hidden=true;
   _autoSendPlan();
 });
-/* ── 回车发送：Enter 发送、Shift+Enter 换行（开关 mobilePrefs.chat.enterSend）── */
-ta.addEventListener('keydown',async e=>{
-  if(e.key!=='Enter'||e.shiftKey||e.isComposing)return;
+/* ── 回车发送：Enter 发送、Shift+Enter 换行（开关 mobilePrefs.chat.enterSend）
+     v1xx-p修复：同步判定——await 后再 preventDefault，键盘默认换行会抢跑导致
+     「回车发送不好使」/出换行；照搬 AIVP lib/chat-input-keyboard 语义：
+     Ctrl/Meta+Enter 恒发送；装好开关时 Enter 发送（Shift/Alt 不拦截）；IME 组合中不拦截 ── */
+ta.addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  const ctrl=e.ctrlKey||e.metaKey;
+  if(!ctrl&&e.shiftKey)return;
+  if(e.isComposing&&!ctrl)return;/* Android 键盘选词回车常报 composing，此分支不拦也不发（AIVP 同款） */
   try{
-    const mp=await loadMP();
-    if(mp&&mp.chat&&mp.chat.enterSend){e.preventDefault();sendMsg()}
+    const en=ctrl||!!(_mp&&_mp.chat&&_mp.chat.enterSend);
+    if(!en)return;
+    e.preventDefault();
+    sendMsg();
   }catch(err){}
 });
 /* ── 键盘收起 X 秒自动回复：对齐 AIVP useKeyboardDismissAutoSend——
@@ -7729,16 +7778,39 @@ function _hasUnrepliedUserMsg(){
   }
   return false;
 }
+/* v1xx-p：AIVP pendingGenerate 模型——发送消息≠立即回复；
+   回复只由 ①「触发回复」按钮 ②键盘收起自动触发（开关开启时）发起 */
+let _pendingGen=false;
+function _pendGenSet(v){
+  _pendingGen=!!v;
+  const b=document.getElementById('cv-trigger');
+  if(b){b.hidden=!_pendingGen;b.classList.toggle('pulse',_pendingGen)}
+}
+function _pendGenInit(){/* 切换会话后按现场重建（AIVP pending 按会话记忆） */
+  try{
+    const cfg=_activeCfg;if(!cfg){_pendGenSet(false);return}
+    _pendGenSet(_hasUnrepliedUserMsg()&&!_sendKeys.has(_convKey(cfg)));
+  }catch(e){_pendGenSet(false)}
+}
+async function _triggerReply(){
+  const cfg=_activeCfg;if(!cfg)return;
+  if(_sendKeys.has(_convKey(cfg)))return;/* 正在生成 */
+  if(!_hasUnrepliedUserMsg()){_pendGenSet(false);return}
+  _pendGenSet(false);
+  if(cfg._group)genReplyGroup(cfg);else genReply(cfg);
+}
+document.getElementById('cv-trigger').addEventListener('click',()=>{_triggerReply()});
 async function _autoSendFire(){
   _autoSendT=null;
   const cfg=_activeCfg;if(!cfg)return;
+  if(!_pendingGen)return;                                          /* 没有未触发的待回复 → 不发（AIVP pending 同款） */
   if(_sendKeys.has(_convKey(cfg)))return;                        /* 正在生成 → 不发 */
   if(!_hasUnrepliedUserMsg())return;                             /* 无未回复用户消息 → 不发 */
   if(ta.value.trim()||_pendImgs.length||_pendFiles.length)return; /* 输入框有草稿/附件 → 用户还要说 */
   if(document.activeElement===ta)return;                         /* 焦点又回到输入框 → 取消 */
   const p=document.getElementById('cv-sticker-panel');if(p&&!p.hidden)return;/* 面板开着 → 取消 */
   const tip=document.getElementById('cv-auto-tip');if(tip)tip.hidden=true;
-  genReply(cfg);                                                 /* 触发 AI 回复 */
+  _triggerReply();                                               /* 触发 AI 回复（与「触发回复」按钮同一入口） */
 }
 async function _autoSendPlan(){
   try{
@@ -8626,7 +8698,9 @@ async function sendMsg(){
   _pendImgs=[];_pendFiles=[];drawAttach();
   setQuote(null);
   pinBottom();
-  if(cfg._group)genReplyGroup(cfg);else genReply(cfg);
+  /* v1xx-p（AIVP pendingGenerate 对齐）：发送后不自动触发回复——
+     显示「触发回复」按钮，由按钮点击或键盘收起自动触发（开关开启时）发起 */
+  _pendGenSet(true);
 }
 /* ── 对话摘要（移植电脑版：apiSettings/summarySettings + chatSummaries，两端互认）── */
 async function getSummarySettingsM(){
@@ -8853,6 +8927,7 @@ async function genReply(cfg,internalCtx){
     }else{
       if(aiEl&&aiEl.isConnected)aiEl.remove();
       toast((sameConv()?'':cfgName(cfg)+'：')+'请求失败：'+(err&&err.message?err.message:'未知错误'));
+      try{_pendGenSet(true)}catch(e10){}/* v1xx-p：请求失败未被回复 → 恢复「触发回复」按钮可再点 */
     }
   }finally{
     try{_xcPostSync()}catch(e){}
@@ -10280,6 +10355,7 @@ async function genReplyGroup(pcfg){
         }
         aiEl.remove();
         toast(selfName+'：请求失败，'+String((err&&err.message)||'').slice(0,60));
+        try{_pendGenSet(true)}catch(e10){}/* v1xx-p：群聊请求失败 → 恢复「触发回复」按钮 */
       }
     }
   }finally{
